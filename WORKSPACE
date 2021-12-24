@@ -1,6 +1,6 @@
 workspace(name = "bazel_terraform_demo")
 
-load("//rules_terraform:toolchain.bzl", "terraform_download")
+load("//rules_terraform:terraform.bzl", "terraform_download")
 
 terraform_download(
     name = "terraform",

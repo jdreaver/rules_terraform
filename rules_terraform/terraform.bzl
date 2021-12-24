@@ -16,7 +16,7 @@ toolchains = {
 def _terraform_download_impl(ctx):
     ctx.file("BUILD.bazel",
         """
-load("@bazel_terraform_demo//rules_terraform:toolchain.bzl", "declare_terraform_toolchains")
+load("@bazel_terraform_demo//rules_terraform:terraform.bzl", "declare_terraform_toolchains")
 
 declare_terraform_toolchains()
 
@@ -71,3 +71,37 @@ def declare_terraform_toolchains():
             toolchain = toolchain["toolchain"],
             toolchain_type = toolchain["toolchain_type"]
         )
+
+
+
+def _terraform_init(ctx):
+    deps = depset(ctx.files.srcs)
+    output = ctx.actions.declare_directory(".terraform")
+    ctx.actions.run(
+        executable = ctx.executable._exec,
+        inputs = deps.to_list(),
+        outputs = [output],
+        mnemonic = "TerraformInitialize",
+        arguments = [
+            "init",
+            #"-out={0}".format(ctx.outputs.out.path),
+            deps.to_list()[0].dirname,
+        ],
+    )
+
+terraform_init = rule(
+    implementation = _terraform_init,
+    attrs = {
+        "srcs": attr.label_list(
+            mandatory = True,
+            allow_files = True,
+        ),
+        "_exec": attr.label(
+            default = Label("@terraform//:terraform_executable"),
+            allow_files = True,
+            executable = True,
+            cfg = "host",
+        ),
+    },
+    #outputs = {"out": "%{name}.out"},
+)
