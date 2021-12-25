@@ -9,9 +9,10 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
-- What do we do with a terraform root that has been init'ed?
-  - Wrap it in a sh_binary script that depends on the init but can run arbitrary
-    Terraform commands.
+- Figure out what to do with initialized Terraform
+  - Ideally we can run terraform in the actual source directory, but with links
+    to modules, generated files, plugins, etc all handled. That might not be
+    possible though, so maybe we need to run it in some hidden bazel directory.
 - Build tests like lint and format checks
 - Modules
 - Terraform providers

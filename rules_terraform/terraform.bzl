@@ -123,34 +123,35 @@ def download_terraform_versions(versions):
 TerraformInitInfo = provider(
     "Files produced by terraform init",
     fields={
+        "terraform": "Terraform executable used to init",
         "source_files": "depset of source Terraform files",
         "dot_terraform": ".terraform directory from terraform init",
     })
 
-def _terraform_init(ctx):
-    srcs = depset(ctx.files.srcs)
+def _terraform_init_impl(ctx):
     output = ctx.actions.declare_directory(".terraform")
     ctx.actions.run(
         executable = ctx.executable.terraform,
-        inputs = srcs.to_list(),
+        inputs = ctx.files.srcs,
         outputs = [output],
         mnemonic = "TerraformInitialize",
         arguments = [
             "init",
-            "-out={0}".format(output.path),
-            srcs.to_list()[0].dirname, # TODO: Better way to get this?
+            #"-out={0}".format(output.path),
+            #"-chdir={}".format(srcs.to_list()[0].dirname), # TODO: Better way to get this?
         ],
     )
     return [
-        DefaultInfo(files = srcs),
+        DefaultInfo(runfiles = ctx.runfiles(ctx.files.srcs)),
         TerraformInitInfo(
-            source_files = srcs,
+            terraform = ctx.executable.terraform,
+            source_files = depset(ctx.files.srcs),
             dot_terraform = output
         )
     ]
 
 terraform_init = rule(
-    implementation = _terraform_init,
+    implementation = _terraform_init_impl,
     attrs = {
         "srcs": attr.label_list(
             mandatory = True,
@@ -163,4 +164,29 @@ terraform_init = rule(
         ),
     },
     #outputs = {"out": "%{name}.out"},
+)
+
+def _terraform_run_impl(ctx):
+    init = ctx.attr.init[TerraformInitInfo]
+
+    symlink = ctx.actions.declare_file("terraform")
+    ctx.actions.symlink(
+        output = symlink,
+        target_file = init.terraform,
+    )
+
+    return [DefaultInfo(
+        runfiles = ctx.runfiles(init.source_files.to_list() + [init.dot_terraform]),
+        executable = symlink,
+    )]
+
+terraform_run = rule(
+    implementation = _terraform_run_impl,
+    attrs = {
+        "init": attr.label(
+            mandatory = True,
+            providers = [TerraformInitInfo],
+        ),
+    },
+    executable = True,
 )
