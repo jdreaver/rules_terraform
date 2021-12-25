@@ -49,11 +49,25 @@ filegroup(
 
 def _detect_os_arch(ctx):
     if ctx.os.name == "linux":
-        return "linux", "amd64"
+        os = "linux"
     elif ctx.os.name == "mac os x":
-        return "darwin", "amd64"
+        os = "darwin"
     else:
         fail("Unsupported operating system: " + ctx.os.name)
+
+    uname_res = ctx.execute(["uname", "-m"])
+    if uname_res.return_code == 0:
+        uname = uname_res.stdout.strip()
+        if uname == "x86_64":
+            arch = "amd64"
+        elif uname == "arm64":
+            arch = "arm64"
+        else:
+            fail("Unable to determing processor architecture.")
+    else:
+        fail("Unable to determing processor architecture.")
+
+    return os, arch
 
 def _parse_sha_file(file_content):
     """Parses terraform SHA256SUMS file and returns map from zip to SHA.
