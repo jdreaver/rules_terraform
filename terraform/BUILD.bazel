@@ -2,5 +2,6 @@ load("//rules_terraform:terraform.bzl", "terraform_init")
 
 terraform_init(
     name = "init",
+    terraform = "@terraform_1_1_2//:terraform",
     srcs = glob(["**/*.tf"]),
 )

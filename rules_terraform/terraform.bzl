@@ -39,7 +39,7 @@ def _terraform_download_impl(ctx):
     ctx.file("BUILD.bazel",
         """
 filegroup(
-    name = "terraform_executable",
+    name = "terraform",
     srcs = ["terraform/terraform"],
     visibility = ["//visibility:public"]
 )
@@ -92,6 +92,20 @@ terraform_download = repository_rule(
     doc = "Downloads a Terraform binary",
 )
 
+def download_terraform_versions(versions):
+    """Downloads multiple terraform versions.
+
+    Args:
+        versions: dict from terraform version to sha256 of SHA56SUMS file for that version.
+    """
+    for version, sha in versions.items():
+        version_str = version.replace(".", "_")
+        terraform_download(
+            name = "terraform_{}".format(version_str),
+            version = version,
+            sha256 = sha,
+        )
+
 TerraformInitInfo = provider(
     "Files produced by terraform init",
     fields={
@@ -103,7 +117,7 @@ def _terraform_init(ctx):
     srcs = depset(ctx.files.srcs)
     output = ctx.actions.declare_directory(".terraform")
     ctx.actions.run(
-        executable = ctx.executable._exec,
+        executable = ctx.executable.terraform,
         inputs = srcs.to_list(),
         outputs = [output],
         mnemonic = "TerraformInitialize",
@@ -128,8 +142,7 @@ terraform_init = rule(
             mandatory = True,
             allow_files = True,
         ),
-        "_exec": attr.label(
-            default = Label("@terraform//:terraform_executable"),
+        "terraform": attr.label(
             allow_files = True,
             executable = True,
             cfg = "host",
