@@ -15,3 +15,4 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 - Build tests like lint and format checks
 - Modules
 - Terraform providers
+- Ensure we don't download terraform binaries we don't actually need
