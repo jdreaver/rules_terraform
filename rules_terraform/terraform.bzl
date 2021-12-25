@@ -72,22 +72,34 @@ def declare_terraform_toolchains():
             toolchain_type = toolchain["toolchain_type"]
         )
 
-
+TerraformInitInfo = provider(
+    "Files produced by terraform init",
+    fields={
+        "source_files": "depset of source Terraform files",
+        "dot_terraform": ".terraform directory from terraform init",
+    })
 
 def _terraform_init(ctx):
-    deps = depset(ctx.files.srcs)
+    srcs = depset(ctx.files.srcs)
     output = ctx.actions.declare_directory(".terraform")
     ctx.actions.run(
         executable = ctx.executable._exec,
-        inputs = deps.to_list(),
+        inputs = srcs.to_list(),
         outputs = [output],
         mnemonic = "TerraformInitialize",
         arguments = [
             "init",
-            #"-out={0}".format(ctx.outputs.out.path),
-            deps.to_list()[0].dirname,
+            "-out={0}".format(output.path),
+            srcs.to_list()[0].dirname, # TODO: Better way to get this?
         ],
     )
+    return [
+        DefaultInfo(files = srcs),
+        TerraformInitInfo(
+            source_files = srcs,
+            dot_terraform = output
+        )
+    ]
 
 terraform_init = rule(
     implementation = _terraform_init,
