@@ -47,26 +47,6 @@ def _terraform_root_module_impl(ctx):
     providers_list = [p[TerraformProviderInfo] for p in module.providers.to_list()]
     provider_files = [p.provider for p in providers_list]
 
-    # Create a wrapper script that runs terraform in a bazel run directory with
-    # all of the necessary files symlinked.
-    wrapper = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
-    ctx.actions.write(
-        output = wrapper,
-        is_executable = True,
-        content = """
-set -eu
-
-terraform="$(realpath {terraform})"
-
-cd "{package}"
-
-exec "$terraform" $@
-        """.format(
-            package = ctx.label.package,
-            terraform = terraform_binary.short_path,
-        ),
-    )
-
     # Create a plugin cache dir
     # TODO: This only works in Terraform < 0.14.0 or 0.13.0, check version here
     # plugin_cache = ctx.actions.declare_directory("plugin_cache")
@@ -89,25 +69,50 @@ exec "$terraform" $@
         )
         cached_providers.append(output)
 
-    # Run terraform init
-    dot_terraform = ctx.actions.declare_directory(".terraform")
-    args = ctx.actions.args()
-    args.add("init")
-    args.add("-backend=false")
-    args.add(ctx.label.package)
-    ctx.actions.run(
-        executable = terraform_binary,
-        inputs = source_files_list + cached_providers,
-        outputs = [dot_terraform],
-        mnemonic = "TerraformInitialize",
-        arguments = [args],
-        # Without use_default_shell_env I was seeing issues where "getent"
-        # wasn't on $PATH. Could have been a NixOS thing.
-        use_default_shell_env = True,
-        env = {
-            "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
-        }
+    # Create a wrapper script that runs terraform in a bazel run directory with
+    # all of the necessary files symlinked.
+    wrapper = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
+    ctx.actions.write(
+        output = wrapper,
+        is_executable = True,
+        content = """
+set -eu
+
+terraform="$(realpath {terraform})"
+
+cd "{package}"
+
+TF_PLUGIN_CACHE_DIR="{plugin_cache_dir}" "$terraform" init
+exec "$terraform" $@
+        """.format(
+            package = ctx.label.package,
+            terraform = terraform_binary.short_path,
+            plugin_cache_dir = plugin_cache_dir,
+        ),
     )
+
+    # TODO: Run terraform init. As you can see from all this nonsense commented
+    # out code, I'm having a very hard time getting this to work inside bazel
+    # (which is why we are doing it in the wrapper script currently).
+
+    # dot_terraform = ctx.actions.declare_directory(".terraform")
+    # args = ctx.actions.args()
+    # args.add("init")
+    # args.add("-backend=false")
+    # args.add(ctx.label.package)
+    # ctx.actions.run(
+    #     executable = terraform_binary,
+    #     inputs = source_files_list + cached_providers,
+    #     outputs = [dot_terraform],
+    #     mnemonic = "TerraformInitialize",
+    #     arguments = [args],
+    #     # Without use_default_shell_env I was seeing issues where "getent"
+    #     # wasn't on $PATH. Could have been a NixOS thing.
+    #     use_default_shell_env = True,
+    #     env = {
+    #         "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
+    #     }
+    # )
 
     # ctx.actions.run_shell(
     #     inputs = [terraform_binary] + source_files_list + cached_providers,
@@ -138,7 +143,7 @@ exec "$terraform" $@
     # )
 
     runfiles = ctx.runfiles(
-        files = [terraform_binary, dot_terraform, wrapper] +
+        files = [terraform_binary, wrapper] +
                 source_files_list + cached_providers,
     )
     return [
