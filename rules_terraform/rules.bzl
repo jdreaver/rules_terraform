@@ -100,7 +100,7 @@ terraform_root_module = rule(
             providers = [TerraformModuleInfo],
         ),
         "terraform": attr.label(
-            allow_files = True,
+            allow_single_file = True,
             executable = True,
             cfg = "host",
         ),
