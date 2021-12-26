@@ -1,6 +1,6 @@
 workspace(name = "bazel_terraform_demo")
 
-load("//rules_terraform:terraform.bzl", "download_terraform_versions")
+load("//rules_terraform:defs.bzl", "download_terraform_versions")
 
 download_terraform_versions({
     # These are SHAs of the SHA265SUM file for a given version. They can be
