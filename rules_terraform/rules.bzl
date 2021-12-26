@@ -2,6 +2,7 @@ TerraformModuleInfo = provider(
     "Provider for the terraform_module rule",
     fields={
         "source_files": "depset of source Terraform files",
+        "providers": "depset of providers",
     })
 
 def _terraform_module_impl(ctx):
@@ -10,6 +11,7 @@ def _terraform_module_impl(ctx):
     return [
         TerraformModuleInfo(
             source_files = depset(ctx.files.srcs),
+            providers = depset(ctx.files.providers),
         )
     ]
 
@@ -19,6 +21,9 @@ terraform_module = rule(
         "srcs": attr.label_list(
             mandatory = True,
             allow_files = True,
+        ),
+        "providers": attr.label_list(
+            mandatory = True,
         ),
     },
 )
@@ -53,18 +58,28 @@ exec "$terraform" $@
         ),
     )
 
+    source_files_list = module.source_files.to_list()
+    providers_list = module.providers.to_list()
+
+    args = ctx.actions.args()
+    args.add("init")
+    args.add("-backend=false")
+    args.add_all(
+        module.providers,
+        before_each = "-plugin-dir",
+    )
     dot_terraform = ctx.actions.declare_directory(".terraform")
     ctx.actions.run(
         executable = ctx.executable.terraform,
-        inputs = module.source_files,
+        inputs = source_files_list + providers_list,
         outputs = [dot_terraform],
         mnemonic = "TerraformInitialize",
-        arguments = ["init"],
+        arguments = [args],
     )
 
     runfiles = ctx.runfiles(
-        files = [ctx.executable.terraform, dot_terraform, wrapper],
-        transitive_files = module.source_files,
+        files = [ctx.executable.terraform, dot_terraform, wrapper] +
+                source_files_list + providers_list,
     )
     return [
         DefaultInfo(
