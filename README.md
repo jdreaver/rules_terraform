@@ -9,7 +9,6 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
-- Modules
 - Make test roots for both 0.12 and the latest Terraform version to ensure we
   cover both version
 - Auto generate provider version bounds in a TF file
@@ -22,6 +21,8 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
     https://github.com/hashicorp/terraform/blob/v0.13/CHANGELOG.md#0132-september-02-2020
   - Lock file came in 0.14.0 https://github.com/hashicorp/terraform/blob/v0.14/CHANGELOG.md#0140-december-02-2020
 - Refactor terraform init to make it way less nasty
+  - Check out Julian's code. He uses declare_directory just fine, it seems.
+    Interesting.
   - Maybe just using Terraform >= 1.0 will be less pain
   - We have to use `run_shell` so we can `mv .terraform` to its actual location
     because for some reason TF_DATA_DIR is ignored.

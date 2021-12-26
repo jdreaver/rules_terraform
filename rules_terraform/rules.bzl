@@ -4,16 +4,25 @@ TerraformModuleInfo = provider(
     "Provider for the terraform_module rule",
     fields={
         "source_files": "depset of source Terraform files",
+        "modules": "depset of modules",
         "providers": "depset of providers",
     })
 
 def _terraform_module_impl(ctx):
-    # TODO: Once we have dependencies, we need to resolve transitive
-    # dependencies. Same with plugins.
     return [
         TerraformModuleInfo(
-            source_files = depset(ctx.files.srcs),
-            providers = depset(ctx.attr.providers),
+            source_files = depset(
+                ctx.files.srcs,
+                transitive = [dep[TerraformModuleInfo].source_files for dep in ctx.attr.deps]
+            ),
+            modules = depset(
+                ctx.attr.deps,
+                transitive = [dep[TerraformModuleInfo].modules for dep in ctx.attr.deps]
+            ),
+            providers = depset(
+                ctx.attr.providers,
+                transitive = [dep[TerraformModuleInfo].providers for dep in ctx.attr.deps]
+            ),
         )
     ]
 
@@ -26,6 +35,10 @@ terraform_module = rule(
         ),
         "providers": attr.label_list(
             mandatory = True,
+            providers = [TerraformProviderInfo],
+        ),
+        "deps": attr.label_list(
+            providers = [TerraformModuleInfo],
         ),
     },
 )
@@ -44,6 +57,7 @@ def _terraform_root_module_impl(ctx):
 
     module = ctx.attr.module[TerraformModuleInfo]
     source_files_list = module.source_files.to_list()
+    modules_list = module.modules.to_list()
     providers_list = [p[TerraformProviderInfo] for p in module.providers.to_list()]
     provider_files = [p.provider for p in providers_list]
 
@@ -97,6 +111,9 @@ def _terraform_root_module_impl(ctx):
     else:
         fail("Don't know how to construct .terraform outputs for terraform versions >= 0.13")
 
+    if modules_list:
+        dot_terraform_files.append(ctx.actions.declare_file(".terraform/modules/modules.json"))
+
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
     wrapper = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
@@ -118,17 +135,18 @@ exec "$terraform" $@
     )
 
     # Run terraform init
+    dot_terraform = "{}/{}/.terraform".format(
+        ctx.bin_dir.path,
+        ctx.label.package,
+    )
     ctx.actions.run_shell(
         inputs = [terraform_binary] + source_files_list + cached_providers,
         outputs = dot_terraform_files,
         mnemonic = "TerraformInitialize",
-        command = "{binary} init {package} && rm -r {dot_terraform} && mv .terraform {dot_terraform}".format(
+        command = 'terraform="$(realpath {binary})" && cd {package} && ls -lah && "$terraform" init && cd - && rm -r {dot_terraform} && mv "{package}/.terraform" {dot_terraform}'.format(
             binary = terraform_binary.path,
             package = ctx.label.package,
-            dot_terraform = "{}/{}/.terraform".format(
-                ctx.bin_dir.path,
-                ctx.label.package,
-            )
+            dot_terraform = dot_terraform,
         ),
         # Without use_default_shell_env I was seeing issues where "getent"
         # wasn't on $PATH. Could have been a NixOS thing.
@@ -136,10 +154,7 @@ exec "$terraform" $@
         env = {
             "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
             # TODO: This doesn't work, and this is why we need to run "mv" and use run_shell
-            # "TF_DATA_DIR": "{}/{}/.terraform".format(
-            #     ctx.bin_dir.path,
-            #     ctx.label.package,
-            # ),
+            # "TF_DATA_DIR": dot_terraform,
         }
     )
 
@@ -160,10 +175,7 @@ exec "$terraform" $@
     #     use_default_shell_env = True,
     #     env = {
     #         "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
-    #         "TF_DATA_DIR": "{}/{}/.terraform".format(
-    #             ctx.bin_dir.path,
-    #             ctx.label.package,
-    #         ),
+    #         "TF_DATA_DIR": dot_terraform,
     #     }
     # )
 
@@ -193,6 +205,7 @@ terraform_root_module = rule(
             allow_single_file = True,
             executable = True,
             cfg = "host",
+            providers = [TerraformBinaryInfo],
         ),
     },
     executable = True,
