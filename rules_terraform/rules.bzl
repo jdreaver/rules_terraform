@@ -1,57 +1,43 @@
-TerraformInitInfo = provider(
-    "Files produced by terraform init",
+TerraformModuleInfo = provider(
+    "Provider for the terraform_module rule",
     fields={
-        "terraform": "Terraform executable used to init",
         "source_files": "depset of source Terraform files",
-        "dot_terraform": ".terraform directory from terraform init",
     })
 
-def _terraform_init_impl(ctx):
-    output = ctx.actions.declare_directory(".terraform")
-    ctx.actions.run(
-        executable = ctx.executable.terraform,
-        inputs = ctx.files.srcs,
-        outputs = [output],
-        mnemonic = "TerraformInitialize",
-        arguments = [
-            "init",
-            #"-out={0}".format(output.path),
-            #"-chdir={}".format(srcs.to_list()[0].dirname), # TODO: Better way to get this?
-        ],
-    )
+def _terraform_module_impl(ctx):
+    # TODO: Once we have dependencies, we need to resolve transitive
+    # dependencies. Same with plugins.
     return [
-        # Provide output as default file so we can run this rule in isolation
-        DefaultInfo(files = depset([output])),
-        TerraformInitInfo(
-            terraform = ctx.executable.terraform,
+        TerraformModuleInfo(
             source_files = depset(ctx.files.srcs),
-            dot_terraform = output
         )
     ]
 
-terraform_init = rule(
-    implementation = _terraform_init_impl,
+terraform_module = rule(
+    implementation = _terraform_module_impl,
     attrs = {
         "srcs": attr.label_list(
             mandatory = True,
             allow_files = True,
         ),
-        "terraform": attr.label(
-            allow_files = True,
-            executable = True,
-            cfg = "host",
-        ),
     },
 )
 
-def _terraform_run_impl(ctx):
-    init = ctx.attr.init[TerraformInitInfo]
+TerraformRootModuleInfo = provider(
+    "Provider for the terraform_root_module rule",
+    fields={
+        "terraform_wrapper": "Terraform wrapper script to run terraform in this rule's output directory",
+        "runfiles": "depset of collected files needed to run",
+    })
+
+def _terraform_root_module_impl(ctx):
+    module = ctx.attr.module[TerraformModuleInfo]
 
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
-    exe = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
+    wrapper = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
     ctx.actions.write(
-        output = exe,
+        output = wrapper,
         is_executable = True,
         content = """
 set -eu
@@ -63,74 +49,74 @@ cd "{package}"
 exec "$terraform" $@
         """.format(
             package = ctx.label.package,
-            terraform = init.terraform.path,
+            terraform = ctx.executable.terraform.path,
         ),
     )
 
-    runfiles = ctx.runfiles(
-        files = [init.terraform, init.dot_terraform],
-        transitive_files = init.source_files,
+    dot_terraform = ctx.actions.declare_directory(".terraform")
+    ctx.actions.run(
+        executable = ctx.executable.terraform,
+        inputs = module.source_files,
+        outputs = [dot_terraform],
+        mnemonic = "TerraformInitialize",
+        arguments = ["init"],
     )
-    return [DefaultInfo(
-        runfiles = runfiles,
-        executable = exe,
-    )]
 
-terraform_run = rule(
-    implementation = _terraform_run_impl,
+    runfiles = ctx.runfiles(
+        files = [ctx.executable.terraform, dot_terraform, wrapper],
+        transitive_files = module.source_files,
+    )
+    return [
+        DefaultInfo(
+            runfiles = runfiles,
+            executable = wrapper,
+        ),
+        TerraformRootModuleInfo(
+            terraform_wrapper = wrapper,
+            runfiles = runfiles,
+        )
+    ]
+
+terraform_root_module = rule(
+    implementation = _terraform_root_module_impl,
     attrs = {
-        "init": attr.label(
+        "module": attr.label(
             mandatory = True,
-            providers = [TerraformInitInfo],
+            providers = [TerraformModuleInfo],
+        ),
+        "terraform": attr.label(
+            allow_files = True,
+            executable = True,
+            cfg = "host",
         ),
     },
     executable = True,
 )
 
-# TODO: Potentially DRY this between the run script, or somehow use the run
-# script in this rule. In fact, maybe creating the run script wrapper should be
-# a part of some terraform_root rule instead of being split out of
-# terraform_init.
-#
-# Also, maybe validate should just be done right after init.
 def _terraform_validate_test_impl(ctx):
-    init = ctx.attr.init[TerraformInitInfo]
+    root = ctx.attr.root_module[TerraformRootModuleInfo]
 
-    # Create a wrapper script that runs terraform in a bazel run directory with
-    # all of the necessary files symlinked.
+    # Call the wrapper script from the root module and just run validate
     exe = ctx.actions.declare_file(ctx.label.name + "_validate_test_wrapper")
     ctx.actions.write(
         output = exe,
         is_executable = True,
-        content = """
-set -eu
-
-terraform="$(realpath {terraform})"
-
-cd "{package}"
-
-exec "$terraform" validate
-        """.format(
-            package = ctx.label.package,
-            terraform = init.terraform.path,
+        content = """exec "{terraform}" validate""".format(
+            terraform = root.terraform_wrapper.short_path,
         ),
     )
 
-    runfiles = ctx.runfiles(
-        files = [init.terraform, init.dot_terraform],
-        transitive_files = init.source_files,
-    )
     return [DefaultInfo(
-        runfiles = runfiles,
+        runfiles = root.runfiles,
         executable = exe,
     )]
 
 terraform_validate_test = rule(
     implementation = _terraform_validate_test_impl,
     attrs = {
-        "init": attr.label(
+        "root_module": attr.label(
             mandatory = True,
-            providers = [TerraformInitInfo],
+            providers = [TerraformRootModuleInfo],
         ),
     },
     test = True,

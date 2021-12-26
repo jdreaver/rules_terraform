@@ -1,17 +1,17 @@
-load("//rules_terraform:defs.bzl", "terraform_init", "terraform_run", "terraform_validate_test")
+load("//rules_terraform:defs.bzl", "terraform_module", "terraform_root_module", "terraform_validate_test")
 
-terraform_init(
-    name = "init",
-    terraform = "@terraform_1_1_2//:terraform",
+terraform_module(
+    name = "module",
     srcs = glob(["**/*.tf"]),
 )
 
-terraform_run(
-    name = "run",
-    init = ":init",
+terraform_root_module(
+    name = "root_module",
+    module = ":module",
+    terraform = "@terraform_1_1_2//:terraform",
 )
 
 terraform_validate_test(
     name = "validate",
-    init = ":init",
+    root_module = ":root_module",
 )
