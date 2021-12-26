@@ -91,18 +91,9 @@ exec "$terraform" $@
 
     # Run terraform init
     dot_terraform = ctx.actions.declare_directory(".terraform")
-    print(dot_terraform)
-    print(dot_terraform.path)
-    print(dot_terraform.root.path)
-
     args = ctx.actions.args()
     args.add("init")
-    #args.add("-chdir={}".format(source_files_list[0].dirname))
     args.add("-backend=false")
-    # args.add_all(
-    #     providers_list,
-    #     before_each = "-plugin-dir",
-    # )
     args.add(ctx.label.package)
     ctx.actions.run(
         executable = terraform_binary,
@@ -110,6 +101,9 @@ exec "$terraform" $@
         outputs = [dot_terraform],
         mnemonic = "TerraformInitialize",
         arguments = [args],
+        # Without use_default_shell_env I was seeing issues where "getent"
+        # wasn't on $PATH. Could have been a NixOS thing.
+        use_default_shell_env = True,
         env = {
             "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
         }
@@ -119,10 +113,14 @@ exec "$terraform" $@
     #     inputs = [terraform_binary] + source_files_list + cached_providers,
     #     outputs = [dot_terraform],
     #     mnemonic = "TerraformInitialize",
-    #     command = "echo $PATH && which getent && {} init {}".format(
+    #     command = "{} init {} && ls -lahR .terraform && mv .terraform {}".format(
     #         terraform_binary.path,
     #         ctx.label.package, # source_files_list[0].dirname,
+    #         dot_terraform.path
     #     ),
+    #     # Without use_default_shell_env I was seeing issues where "getent"
+    #     # wasn't on $PATH. Could have been a NixOS thing.
+    #     use_default_shell_env = True,
     #     env = {
     #         "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
     #     }
