@@ -11,6 +11,8 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 - Terraform providers
   - Might need to manually create `.terraform`
+  - Old provider docs for 0.12.31
+    https://github.com/hashicorp/terraform/blob/v0.12.31/website/docs/configuration/providers.html.md
 - Modules
 - Test that ensures `terraform fmt` is a no-op
 - Ensure we don't download terraform binaries we don't actually need

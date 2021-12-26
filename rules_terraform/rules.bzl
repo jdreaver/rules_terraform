@@ -1,3 +1,5 @@
+load(":download_terraform.bzl", "TerraformBinaryInfo", "TerraformProviderInfo")
+
 TerraformModuleInfo = provider(
     "Provider for the terraform_module rule",
     fields={
@@ -11,7 +13,7 @@ def _terraform_module_impl(ctx):
     return [
         TerraformModuleInfo(
             source_files = depset(ctx.files.srcs),
-            providers = depset(ctx.files.providers),
+            providers = depset(ctx.attr.providers),
         )
     ]
 
@@ -36,7 +38,14 @@ TerraformRootModuleInfo = provider(
     })
 
 def _terraform_root_module_impl(ctx):
+    terraform_info = ctx.attr.terraform[TerraformBinaryInfo]
+    terraform_binary = terraform_info.binary
+    terraform_version = terraform_info.version
+
     module = ctx.attr.module[TerraformModuleInfo]
+    source_files_list = module.source_files.to_list()
+    providers_list = [p[TerraformProviderInfo] for p in module.providers.to_list()]
+    provider_files = [p.provider for p in providers_list]
 
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
@@ -54,32 +63,85 @@ cd "{package}"
 exec "$terraform" $@
         """.format(
             package = ctx.label.package,
-            terraform = ctx.executable.terraform.path,
+            terraform = terraform_binary.short_path,
         ),
     )
 
-    source_files_list = module.source_files.to_list()
-    providers_list = module.providers.to_list()
+    # Create a plugin cache dir
+    # TODO: This only works in Terraform < 0.14.0 or 0.13.0, check version here
+    # plugin_cache = ctx.actions.declare_directory("plugin_cache")
+    plugin_cache_dir = "plugin_cache"
+    cached_providers = []
+    for provider in providers_list:
+        output = ctx.actions.declare_file("{}/{}/{}".format(
+            plugin_cache_dir,
+            provider.platform,
+            provider.provider.basename,
+        ))
+        ctx.actions.run(
+            inputs = [provider.provider],
+            outputs = [output],
+            executable = "cp",
+            arguments = [
+                provider.provider.path,
+                output.path,
+            ],
+        )
+        cached_providers.append(output)
+
+    # Run terraform init
+    dot_terraform = ctx.actions.declare_directory(".terraform")
+    print(dot_terraform)
+    print(dot_terraform.path)
+    print(dot_terraform.root.path)
 
     args = ctx.actions.args()
     args.add("init")
+    #args.add("-chdir={}".format(source_files_list[0].dirname))
     args.add("-backend=false")
-    args.add_all(
-        module.providers,
-        before_each = "-plugin-dir",
-    )
-    dot_terraform = ctx.actions.declare_directory(".terraform")
+    # args.add_all(
+    #     providers_list,
+    #     before_each = "-plugin-dir",
+    # )
+    args.add(ctx.label.package)
     ctx.actions.run(
-        executable = ctx.executable.terraform,
-        inputs = source_files_list + providers_list,
+        executable = terraform_binary,
+        inputs = source_files_list + cached_providers,
         outputs = [dot_terraform],
         mnemonic = "TerraformInitialize",
         arguments = [args],
+        env = {
+            "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
+        }
     )
 
+    # ctx.actions.run_shell(
+    #     inputs = [terraform_binary] + source_files_list + cached_providers,
+    #     outputs = [dot_terraform],
+    #     mnemonic = "TerraformInitialize",
+    #     command = "echo $PATH && which getent && {} init {}".format(
+    #         terraform_binary.path,
+    #         ctx.label.package, # source_files_list[0].dirname,
+    #     ),
+    #     env = {
+    #         "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
+    #     }
+    # )
+
+    # lock_json_output = ctx.actions.declare_file(".terraform/plugins/{}/lock.json".format(
+    #     provider.platform,
+    # ))
+    # # Manually construct json because the version of bazel I'm writing this on
+    # # doesn't have the json module.
+    # lock_json_strings = ["{"] + ['  "{}": "{}"'.format(provider.provider_name, provider.sha) for provider in providers_list] + ["}"]
+    # ctx.actions.write(
+    #     lock_json_output,
+    #     "\n".join(lock_json_strings),
+    # )
+
     runfiles = ctx.runfiles(
-        files = [ctx.executable.terraform, dot_terraform, wrapper] +
-                source_files_list + providers_list,
+        files = [terraform_binary, dot_terraform, wrapper] +
+                source_files_list + cached_providers,
     )
     return [
         DefaultInfo(

@@ -37,13 +37,17 @@ def _terraform_download_impl(ctx):
     # Put a BUILD file here so we can use the resulting binary in other bazel
     # rules.
     ctx.file("BUILD.bazel",
-        """
-filegroup(
+        """load("@bazel_terraform_demo//rules_terraform:defs.bzl", "terraform_binary")
+
+terraform_binary(
     name = "terraform",
-    srcs = ["terraform/terraform"],
-    visibility = ["//visibility:public"]
+    binary = "terraform/terraform",
+    version = "{version}",
+    visibility = ["//visibility:public"],
 )
-""",
+""".format(
+    version = version,
+),
         executable=False
     )
 
@@ -106,6 +110,56 @@ terraform_download = repository_rule(
     doc = "Downloads a Terraform binary",
 )
 
+TerraformBinaryInfo = provider(
+    "Provider for the terraform_binary rule",
+    fields={
+        "binary": "Path to Terraform binary",
+        "version": "Version of Terraform for binary",
+    })
+
+def _terraform_binary_impl(ctx):
+    # Copies the terraform binary so we can declare it as an output and mark it
+    # as executable. We can't just mark the existing binary as executable,
+    # unfortunately.
+    output = ctx.actions.declare_file("terraform_{}".format(ctx.attr.version))
+    ctx.actions.run(
+        inputs = [ctx.file.binary],
+        outputs = [output],
+        executable = "cp",
+        arguments = [
+            ctx.file.binary.path,
+            output.path,
+        ],
+    )
+    return [
+        DefaultInfo(
+            files = depset([output]),
+            executable = output,
+        ),
+        TerraformBinaryInfo(
+            binary = output,
+            version = ctx.attr.version,
+        ),
+    ]
+
+terraform_binary = rule(
+    implementation = _terraform_binary_impl,
+    attrs = {
+        "binary": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+            executable = True,
+            cfg = "host",
+            doc = "Path to downloaded Terraform binary",
+        ),
+        "version": attr.string(
+            mandatory = True,
+            doc = "Version of Terraform",
+        ),
+    },
+    executable = True,
+)
+
 def download_terraform_versions(versions):
     """Downloads multiple terraform versions.
 
@@ -162,15 +216,23 @@ def _terraform_provider_download_impl(ctx):
     # Put a BUILD file here so we can use the resulting binary in other bazel
     # rules.
     ctx.file("BUILD.bazel",
-        """
-filegroup(
+        """load("@bazel_terraform_demo//rules_terraform:defs.bzl", "terraform_provider")
+
+terraform_provider(
     name = "provider",
-    srcs = glob(["terraform-provider-{name}_v{version}_x*"]),
+    provider = glob(["terraform-provider-{name}_v{version}_x*"])[0],
+    provider_name = "{name}",
+    version = "{version}",
+    sha = "{sha}",
+    platform = "{os}_{arch}",
     visibility = ["//visibility:public"]
 )
 """.format(
     name = name,
     version = version,
+    sha = sha256,
+    os = os,
+    arch = arch,
 ),
         executable=False
     )
@@ -191,6 +253,57 @@ terraform_provider_download = repository_rule(
         ),
     },
     doc = "Downloads a Terraform provider",
+)
+
+TerraformProviderInfo = provider(
+    "Provider for the terraform_provider rule",
+    fields={
+        "provider": "Path to Terraform provider",
+        "provider_name": "Name of provider",
+        "version": "Version of Terraform provider",
+        "sha": "SHA of Terraform provider binary",
+        "platform": "Platform of Terraform provider binary, like linux_amd64",
+    })
+
+def _terraform_provider_impl(ctx):
+    return [
+        DefaultInfo(
+            files = depset([ctx.file.provider]),
+        ),
+        TerraformProviderInfo(
+            provider = ctx.file.provider,
+            provider_name = ctx.attr.provider_name,
+            version = ctx.attr.version,
+            sha = ctx.attr.sha,
+            platform = ctx.attr.platform,
+        ),
+    ]
+
+terraform_provider = rule(
+    implementation = _terraform_provider_impl,
+    attrs = {
+        "provider": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+            doc = "Path to downloaded Terraform provider",
+        ),
+        "provider_name": attr.string(
+            mandatory = True,
+            doc = "Name of Terraform provider",
+        ),
+        "version": attr.string(
+            mandatory = True,
+            doc = "Version of Terraform provider",
+        ),
+        "sha": attr.string(
+            mandatory = True,
+            doc = "SHA of Terraform provider binary",
+        ),
+        "platform": attr.string(
+            mandatory = True,
+            doc = "Platform of Terraform provider binary, like linux_amd64",
+        ),
+    },
 )
 
 def download_terraform_provider_versions(provider_name, versions):
