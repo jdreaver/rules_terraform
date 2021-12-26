@@ -119,3 +119,95 @@ def download_terraform_versions(versions):
             version = version,
             sha256 = sha,
         )
+
+def _terraform_provider_download_impl(ctx):
+    name = ctx.attr.provider_name
+    os, arch = _detect_os_arch(ctx)
+    version = ctx.attr.version
+
+    # First get SHA256SUMS file so we can get all of the individual zip SHAs
+    ctx.report_progress("Downloading and extracting SHA256SUMS file")
+    sha256sums_url = "https://releases.hashicorp.com/terraform-provider-{name}/{version}/terraform-provider-{name}_{version}_SHA256SUMS".format(
+        name = name,
+        version = version,
+    )
+    ctx.download(
+        url = sha256sums_url,
+        sha256 = ctx.attr.sha256,
+        output = "terraform_provider_sha256sums",
+    )
+    sha_content = ctx.read("terraform_provider_sha256sums")
+    sha_by_zip = _parse_sha_file(sha_content)
+    zip = "terraform-provider-{name}_{version}_{os}_{arch}.zip".format(
+        name = name,
+        version = version,
+        os = os,
+        arch = arch,
+    )
+    url = "https://releases.hashicorp.com/terraform-provider-{name}/{version}/{zip}".format(
+        name = name,
+        version = version,
+        zip = zip,
+    )
+    sha256 = sha_by_zip[zip]
+
+    # Now download actual Terraform zip
+    ctx.report_progress("Downloading and extracting Terraform provider {}".format(name))
+    ctx.download_and_extract(
+        url = url,
+        sha256 = sha256,
+        type = "zip",
+    )
+
+    # Put a BUILD file here so we can use the resulting binary in other bazel
+    # rules.
+    ctx.file("BUILD.bazel",
+        """
+filegroup(
+    name = "provider",
+    srcs = glob(["terraform-provider-{name}_v{version}_x*"]),
+    visibility = ["//visibility:public"]
+)
+""".format(
+    name = name,
+    version = version,
+),
+        executable=False
+    )
+
+terraform_provider_download = repository_rule(
+    implementation = _terraform_provider_download_impl,
+    attrs = {
+        "provider_name": attr.string(
+            mandatory = True,
+        ),
+        "sha256": attr.string(
+            mandatory = True,
+            doc = "Expected SHA-256 sum of the downloaded archive",
+        ),
+        "version": attr.string(
+            mandatory = True,
+            doc = "Version of the Terraform provider",
+        ),
+    },
+    doc = "Downloads a Terraform provider",
+)
+
+def download_terraform_provider_versions(provider_name, versions):
+    """Downloads multiple terraform provider versions.
+
+    Args:
+        provider_name: string name for provider
+        versions: dict from terraform version to sha256 of SHA56SUMS file for that version.
+    """
+    for version, sha in versions.items():
+        version_str = version.replace(".", "_")
+        terraform_provider_download(
+            name = "terraform_provider_{name}_{version_str}".format(
+                name = provider_name,
+                version_str = version_str,
+            ),
+            provider_name = provider_name,
+            version = version,
+            sha256 = sha,
+        )
