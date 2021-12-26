@@ -5,6 +5,7 @@ terraform_module(
     srcs = glob(["**/*.tf"]),
     providers = [
         "@terraform_provider_local_2_1_0//:provider",
+        "@terraform_provider_time_0_7_0//:provider",
     ],
 )
 

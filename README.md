@@ -9,8 +9,21 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
-- Terraform providers
-  - Might need to manually create `.terraform`
+- Move `terraform init` and creating `.terraform` into bazel rule instead of
+  doing it in wrapper script.
+  - Current system is bad too because it fetches undeclared providers at runtime
+    from network.
+  - I think the problem is `.terraform` is created with
+    `ctx.actions.declare_directory`, and we correctly pass that around as a
+    runfile, but we don't pass around everything under that. Maybe we need to
+    explicitly declare `lock.json`, the providers, etc.
+	```
+    .terraform
+    └── plugins
+        └── linux_amd64
+            ├── lock.json
+            └── terraform-provider-local_v2.1.0_x5 -> /home/david/.cache/bazel/_bazel_david/2203281fd02fc20d7232b7c89f51aaea/execroot/bazel_terraform_demo/bazel-out/k8-fastbuild/bin/terraform/plugin_cache/linux_amd64/terraform-provider-local_v2.1.0_x5
+    ```
   - Old provider docs for 0.12.31
     https://github.com/hashicorp/terraform/blob/v0.12.31/website/docs/configuration/providers.html.md
 - Modules
