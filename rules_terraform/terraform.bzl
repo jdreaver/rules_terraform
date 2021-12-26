@@ -142,7 +142,8 @@ def _terraform_init_impl(ctx):
         ],
     )
     return [
-        DefaultInfo(runfiles = ctx.runfiles(ctx.files.srcs)),
+        # Provide output as default file so we can run this rule in isolation
+        DefaultInfo(files = depset([output])),
         TerraformInitInfo(
             terraform = ctx.executable.terraform,
             source_files = depset(ctx.files.srcs),
