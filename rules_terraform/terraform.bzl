@@ -164,21 +164,38 @@ terraform_init = rule(
             cfg = "host",
         ),
     },
-    #outputs = {"out": "%{name}.out"},
 )
 
 def _terraform_run_impl(ctx):
     init = ctx.attr.init[TerraformInitInfo]
 
-    symlink = ctx.actions.declare_file("terraform")
-    ctx.actions.symlink(
-        output = symlink,
-        target_file = init.terraform,
+    # Create a wrapper script that runs terraform in a bazel run directory with
+    # all of the necessary files symlinked.
+    exe = ctx.actions.declare_file("wrapper")
+    ctx.actions.write(
+        output = exe,
+        is_executable = True,
+        content = """
+set -eu
+
+terraform="$(realpath {terraform})"
+
+cd "{package}"
+
+exec "$terraform" $@
+        """.format(
+            package = ctx.label.package,
+            terraform = init.terraform.path,
+        ),
     )
 
+    runfiles = ctx.runfiles(
+        files = [init.terraform, init.dot_terraform],
+        transitive_files = init.source_files,
+    )
     return [DefaultInfo(
-        runfiles = ctx.runfiles(init.source_files.to_list() + [init.dot_terraform]),
-        executable = symlink,
+        runfiles = runfiles,
+        executable = exe,
     )]
 
 terraform_run = rule(
