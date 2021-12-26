@@ -10,6 +10,7 @@
       devShell.x86_64-linux = pkgs.mkShell {
         buildInputs = with pkgs; [
           bazel
+          jdk11 # Needed to run some bazel commands
         ];
       };
     };

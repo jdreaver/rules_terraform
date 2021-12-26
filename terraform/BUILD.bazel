@@ -1,4 +1,4 @@
-load("//rules_terraform:terraform.bzl", "terraform_init", "terraform_run")
+load("//rules_terraform:terraform.bzl", "terraform_init", "terraform_run", "terraform_validate_test")
 
 terraform_init(
     name = "init",
@@ -8,5 +8,10 @@ terraform_init(
 
 terraform_run(
     name = "run",
+    init = ":init",
+)
+
+terraform_validate_test(
+    name = "validate",
     init = ":init",
 )

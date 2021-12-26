@@ -13,7 +13,9 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
   - Ideally we can run terraform in the actual source directory, but with links
     to modules, generated files, plugins, etc all handled. That might not be
     possible though, so maybe we need to run it in some hidden bazel directory.
-- Build tests like lint and format checks
+- Test that ensures `terraform fmt` is a no-op
 - Modules
 - Terraform providers
 - Ensure we don't download terraform binaries we don't actually need
+- Simulate sharing values/config between Terraform and a separate dummy CLI tool
+  (YAML files?) like at work to iron it out

@@ -171,7 +171,7 @@ def _terraform_run_impl(ctx):
 
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
-    exe = ctx.actions.declare_file("wrapper")
+    exe = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
     ctx.actions.write(
         output = exe,
         is_executable = True,
@@ -207,4 +207,53 @@ terraform_run = rule(
         ),
     },
     executable = True,
+)
+
+# TODO: Potentially DRY this between the run script, or somehow use the run
+# script in this rule. In fact, maybe creating the run script wrapper should be
+# a part of some terraform_root rule instead of being split out of
+# terraform_init.
+#
+# Also, maybe validate should just be done right after init.
+def _terraform_validate_test_impl(ctx):
+    init = ctx.attr.init[TerraformInitInfo]
+
+    # Create a wrapper script that runs terraform in a bazel run directory with
+    # all of the necessary files symlinked.
+    exe = ctx.actions.declare_file(ctx.label.name + "_validate_test_wrapper")
+    ctx.actions.write(
+        output = exe,
+        is_executable = True,
+        content = """
+set -eu
+
+terraform="$(realpath {terraform})"
+
+cd "{package}"
+
+exec "$terraform" validate
+        """.format(
+            package = ctx.label.package,
+            terraform = init.terraform.path,
+        ),
+    )
+
+    runfiles = ctx.runfiles(
+        files = [init.terraform, init.dot_terraform],
+        transitive_files = init.source_files,
+    )
+    return [DefaultInfo(
+        runfiles = runfiles,
+        executable = exe,
+    )]
+
+terraform_validate_test = rule(
+    implementation = _terraform_validate_test_impl,
+    attrs = {
+        "init": attr.label(
+            mandatory = True,
+            providers = [TerraformInitInfo],
+        ),
+    },
+    test = True,
 )
