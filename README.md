@@ -12,6 +12,7 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
+- Run more complex Terraform examples, like AWS resources
 - Ensure we are using already downloaded providers and we aren't downloading new
   ones
   - Looks like 0.13.0 is when the new provider installation methods were
@@ -60,17 +61,31 @@ bazel to see if we can solve lots of our infrastructure as code problems.
 
 ## Detailed discussion of problems being solved
 
-### Automatically download correct versions of Terraform and providers
+### Cache downloads, builds, and tests
+
+Bazel aggressively caches all nodes in the build graph. That means downloaded
+Terraform binaries, downloaded Terraform providers, builds of `.terraform`, and
+test executions are all cached. This means that incremental runs of `terraform
+init` and any tests are as fast as possible in CI; you won't rebuild
+`.terraform` or rerun a test unless some upstream dependency actually changed.
+
+#### (TODO) Cache providers centrally for all roots
+
+(The TODO here is ensuring providers aren't copied between roots. This might
+only be possible for versions >= 0.13.2 and with `filesystem_mirror`. This is
+fantastic because we might be able to store thousands of roots in a single
+tarball with minimal space; it is almost entirely a bunch of symlinks.)
 
 ### Build a DAG of Terraform root modules so we can reason about downstream/upstream changes
 
+For example, to view which terraform roots depend on a given module, we can do:
+
+```
+$ bazel query "kind(terraform_root_module, rdeps(//terraform/..., //terraform/time_module:module))" --output package
+terraform/0_12_31
+terraform/1_1_2
+```
+
 ### Share variables between Terraform and external tooling
-
-### Cache builds and tests
-
-### (TODO) Cache providers centrally for all roots
-
-(The TODO here is ensuring providers aren't copied between roots. This might
-only be possible for versions >= 0.13.2 and with `filesyste_mirror`)
 
 ### (Maybe) Generate boilerplate Terraform code for dependencies and references from bazel
