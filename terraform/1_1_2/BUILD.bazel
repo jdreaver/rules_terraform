@@ -1,4 +1,12 @@
-load("//rules_terraform:defs.bzl", "terraform_module", "terraform_root_module", "terraform_validate_test")
+load(
+    "//rules_terraform:defs.bzl",
+    "terraform_module",
+    "terraform_root_module",
+    "terraform_validate_test",
+    "terraform_format_test",
+)
+
+TERRAFORM = "@terraform_1_1_2//:terraform"
 
 terraform_module(
     name = "module",
@@ -14,10 +22,16 @@ terraform_module(
 terraform_root_module(
     name = "root_module",
     module = ":module",
-    terraform = "@terraform_1_1_2//:terraform",
+    terraform = TERRAFORM,
 )
 
 terraform_validate_test(
     name = "validate",
     root_module = ":root_module",
+)
+
+terraform_format_test(
+    name = "format",
+    module = ":module",
+    terraform = TERRAFORM,
 )

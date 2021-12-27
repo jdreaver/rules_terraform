@@ -249,3 +249,54 @@ terraform_validate_test = rule(
     },
     test = True,
 )
+
+def _terraform_format_test_impl(ctx):
+    module = ctx.attr.module[TerraformModuleInfo]
+    terraform_info = ctx.attr.terraform[TerraformBinaryInfo]
+    terraform_binary = terraform_info.binary
+
+    # Call terraform fmt inside the module directory
+    exe = ctx.actions.declare_file(ctx.label.name + "_format_test_wrapper")
+    ctx.actions.write(
+        output = exe,
+        is_executable = True,
+        content = """
+set -eu
+
+terraform="$(realpath {terraform})"
+
+cd "{module_path}"
+
+set +e
+output=$("$terraform" fmt -check -recursive)
+if [ $? -ne 0 ]; then
+    echo "Terraform format test failed! The following files need 'terraform fmt' to be run:\n$output"
+    exit 1
+fi
+""".format(
+    terraform = terraform_binary.short_path,
+    module_path = ctx.attr.module.label.package,
+),
+    )
+
+    return [DefaultInfo(
+        runfiles = ctx.runfiles([terraform_binary] + module.source_files.to_list()),
+        executable = exe,
+    )]
+
+terraform_format_test = rule(
+    implementation = _terraform_format_test_impl,
+    attrs = {
+        "module": attr.label(
+            mandatory = True,
+            providers = [TerraformModuleInfo],
+        ),
+        "terraform": attr.label(
+            allow_single_file = True,
+            executable = True,
+            cfg = "host",
+            providers = [TerraformBinaryInfo],
+        ),
+    },
+    test = True,
+)

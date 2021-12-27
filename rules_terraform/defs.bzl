@@ -10,6 +10,7 @@ load(
     _terraform_module = "terraform_module",
     _terraform_root_module = "terraform_root_module",
     _terraform_validate_test = "terraform_validate_test",
+    _terraform_format_test = "terraform_format_test",
 )
 
 download_terraform_versions = _download_terraform_versions
@@ -20,3 +21,4 @@ terraform_provider = _terraform_provider
 terraform_module = _terraform_module
 terraform_root_module = _terraform_root_module
 terraform_validate_test = _terraform_validate_test
+terraform_format_test = _terraform_format_test

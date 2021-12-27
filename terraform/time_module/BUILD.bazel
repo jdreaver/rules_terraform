@@ -1,4 +1,8 @@
-load("//rules_terraform:defs.bzl", "terraform_module")
+load(
+    "//rules_terraform:defs.bzl",
+    "terraform_module",
+    "terraform_format_test",
+)
 
 terraform_module(
     name = "module",
@@ -7,4 +11,10 @@ terraform_module(
         "@terraform_provider_time_0_7_0//:provider",
     ],
     visibility = ["//visibility:public"],
+)
+
+terraform_format_test(
+    name = "format",
+    module = ":module",
+    terraform = "@terraform_1_1_2//:terraform",
 )

@@ -9,6 +9,9 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
+- Try implementing toolchain again so we can pick a default Terraform version
+  - In the real world we probably want to be explicit, but for the `terraform
+    fmt` test we can use whatever.
 - Ensure we are using already downloaded providers and we aren't downloading new
   ones
   - Looks like 0.13.0 is when the new provider installation methods were
@@ -17,7 +20,6 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 	- https://www.terraform.io/cli/config/config-file#explicit-installation-method-configuration
 	- We can use the filesystem_mirror block
 - Use amd64 for Terraform versions that don't have arm64
-- Test that ensures `terraform fmt` is a no-op
 - Ensure we don't download terraform binaries we don't actually need
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
   (YAML files?) like at work to iron it out
@@ -65,5 +67,10 @@ bazel to see if we can solve lots of our infrastructure as code problems.
 ### Share variables between Terraform and external tooling
 
 ### Cache builds and tests
+
+### (TODO) Cache providers centrally for all roots
+
+(The TODO here is ensuring providers aren't copied between roots. This might
+only be possible for versions >= 0.13.2 and with `filesyste_mirror`)
 
 ### (Maybe) Generate boilerplate Terraform code for dependencies and references from bazel
