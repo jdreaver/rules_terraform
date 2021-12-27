@@ -9,11 +9,11 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
-- Make test roots for both 0.12 and the latest Terraform version to ensure we
-  cover both version
 - Auto generate provider version bounds in a TF file
-- Figure out how to deal with lockfiles in newer terraform versions
-  - We already pin versions and SHAs in bazel. We shouldn't need lockfiles.
+- Ensure we are using already downloaded providers and we aren't downloading new
+  ones
+  - In Terraform >= 0.13 or whatever use the incantation that says we are using
+    local copies of providers.
   - https://www.terraform.io/cli/plugins
   - https://www.terraform.io/cli/commands/providers/lock
   - Looks like 0.13.0 is when the new provider installation methods were
@@ -29,3 +29,4 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 - Ensure we don't download terraform binaries we don't actually need
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
   (YAML files?) like at work to iron it out
+- Document everything, refactor everything, etc. Make this presentable.

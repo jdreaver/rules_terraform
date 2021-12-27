@@ -81,10 +81,6 @@ def _terraform_root_module_impl(ctx):
         )
         cached_providers.append(output)
 
-    # Add terraform lock file if version >= 0.14
-    # if terraform_version >= "0.14":
-    #     terraform_init_files.append(ctx.actions.declare_file(".terraform.lock.hcl"))
-
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
     wrapper = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
@@ -105,8 +101,13 @@ exec "$terraform" $@
         ),
     )
 
-    # Write init script to run terraform init
+    # Declare files we are going to generate from init. Note that
+    # .terraform.lock.hcl is only used in Terraform >= 0.14, so we just touch it
+    # if we are below that version.
     dot_terraform = ctx.actions.declare_directory(".terraform")
+    terraform_lock_file = ctx.actions.declare_file(".terraform.lock.hcl")
+
+    # Write init script to run terraform init
     init_script = ctx.actions.declare_file("_terraform_init_script")
     ctx.actions.write(
         init_script,
@@ -118,17 +119,22 @@ terraform="$(realpath {binary})"
 
 # Move to Terraform root directory so paths are relative to here
 pushd {package}
-ls -lah && "$terraform" init
+"$terraform" init
+{touch_lock_file}
 
 # Go back to main execution directory and move .terraform to where we
 # declared it to be (it is in some deep bazel-out directory)
 popd
 rm -r {dot_terraform}
 mv "{package}/.terraform" {dot_terraform}
+mv "{package}/.terraform.lock.hcl" {terraform_lock_file}
         """.format(
             binary = terraform_binary.path,
             package = ctx.label.package,
+            # Use touch to create fake lock file
+            touch_lock_file = "touch .terraform.lock.hcl" if terraform_version <= "0.14" else "",
             dot_terraform = dot_terraform.path,
+            terraform_lock_file = terraform_lock_file.path
         ),
         is_executable = True,
     )
@@ -136,7 +142,7 @@ mv "{package}/.terraform" {dot_terraform}
     # Run terraform init script
     ctx.actions.run(
         inputs = [terraform_binary] + source_files_list + cached_providers,
-        outputs = [dot_terraform],
+        outputs = [dot_terraform, terraform_lock_file],
         mnemonic = "TerraformInitialize",
         executable = init_script,
         # Without use_default_shell_env I was seeing issues where "getent"
@@ -151,7 +157,7 @@ mv "{package}/.terraform" {dot_terraform}
     )
 
     runfiles = ctx.runfiles(
-        files = [terraform_binary, wrapper, dot_terraform] +
+        files = [terraform_binary, wrapper, dot_terraform, terraform_lock_file] +
                 source_files_list + cached_providers,
     )
     return [
