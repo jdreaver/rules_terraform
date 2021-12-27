@@ -103,7 +103,8 @@ def _terraform_root_module_impl(ctx):
     providers_list = [p[TerraformProviderInfo] for p in module.providers.to_list()]
     provider_files = [p.provider for p in providers_list]
 
-    # Create a plugin cache dir
+    # Create a plugin cache dir. TODO: Use and explicit filesystem_mirror block
+    # if terraform_version >= 0.13.2
     plugin_cache_dir = "plugin_cache"
     cached_providers = []
     for provider in providers_list:
@@ -112,14 +113,9 @@ def _terraform_root_module_impl(ctx):
             provider.platform,
             provider.provider.basename,
         ))
-        ctx.actions.run(
-            inputs = [provider.provider],
-            outputs = [output],
-            executable = "cp",
-            arguments = [
-                provider.provider.path,
-                output.path,
-            ],
+        ctx.actions.symlink(
+            output = output,
+            target_file = provider.provider,
         )
         cached_providers.append(output)
 
