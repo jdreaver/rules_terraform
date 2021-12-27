@@ -37,7 +37,7 @@ def _terraform_module_impl(ctx):
             "}",
         ])
 
-        required_providers_file = ctx.actions.declare_file("_required_providers.tf")
+        required_providers_file = ctx.actions.declare_file("__bazel_required_providers.tf")
         ctx.actions.write(
             required_providers_file,
             "\n".join(required_providers_lines),
@@ -159,17 +159,22 @@ exec "$terraform" $@
 # change directories
 terraform="$(realpath {binary})"
 
-# Move to Terraform root directory so paths are relative to here
-cd $(dirname {dot_terraform})
+# Move to Terraform root directory so things like module paths are relative to
+# this location and we generate .terraform right here where it is declared.
+cd {terraform_root_path}
 "$terraform" init
-{touch_lock_file}
+
+# Touch lock file if it doesn't exist so bazel is happy
+if [ ! -f .terraform.lock.hcl ]; then
+  touch .terraform.lock.hcl
+fi
         """.format(
             binary = terraform_binary.path,
             package = ctx.label.package,
-            # Use touch to create fake lock file
-            touch_lock_file = "touch .terraform.lock.hcl" if terraform_version <= "0.14" else "",
-            dot_terraform = dot_terraform.path,
-            terraform_lock_file = terraform_lock_file.path
+            terraform_root_path = "{}/{}".format(
+                ctx.bin_dir.path,
+                ctx.label.package,
+            )
         ),
         is_executable = True,
     )
@@ -185,9 +190,6 @@ cd $(dirname {dot_terraform})
         use_default_shell_env = True,
         env = {
             "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
-            # TODO: This doesn't work at all for some reason. Just straight up
-            # ignored by Terraform.
-            # "TF_DATA_DIR": dot_terraform.path,
         }
     )
 
