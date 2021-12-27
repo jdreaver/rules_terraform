@@ -63,37 +63,27 @@ def _terraform_root_module_impl(ctx):
 
     # Create a plugin cache dir
     plugin_cache_dir = "plugin_cache"
-    if terraform_version < "0.13": # TODO: Does this actually work with 0.14?
-        cached_providers = []
-        for provider in providers_list:
-            output = ctx.actions.declare_file("{}/{}/{}".format(
-                plugin_cache_dir,
-                provider.platform,
-                provider.provider.basename,
-            ))
-            ctx.actions.run(
-                inputs = [provider.provider],
-                outputs = [output],
-                executable = "cp",
-                arguments = [
-                    provider.provider.path,
-                    output.path,
-                ],
-            )
-            cached_providers.append(output)
+    cached_providers = []
+    for provider in providers_list:
+        output = ctx.actions.declare_file("{}/{}/{}".format(
+            plugin_cache_dir,
+            provider.platform,
+            provider.provider.basename,
+        ))
+        ctx.actions.run(
+            inputs = [provider.provider],
+            outputs = [output],
+            executable = "cp",
+            arguments = [
+                provider.provider.path,
+                output.path,
+            ],
+        )
+        cached_providers.append(output)
 
-        # lock_json_output = ctx.actions.declare_file(".terraform/plugins/{}/lock.json".format(
-        #     provider.platform,
-        # ))
-        # # Manually construct json because the version of bazel I'm writing this on
-        # # doesn't have the json module.
-        # lock_json_strings = ["{"] + ['  "{}": "{}"'.format(provider.provider_name, provider.sha) for provider in providers_list] + ["}"]
-        # ctx.actions.write(
-        #     lock_json_output,
-        #     "\n".join(lock_json_strings),
-        # )
-    else:
-        fail("Don't know how to construct .terraform outputs for terraform versions >= 0.13")
+    # Add terraform lock file if version >= 0.14
+    # if terraform_version >= "0.14":
+    #     terraform_init_files.append(ctx.actions.declare_file(".terraform.lock.hcl"))
 
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
