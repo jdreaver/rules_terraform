@@ -223,6 +223,7 @@ terraform_provider(
     provider = glob(["terraform-provider-{name}_v{version}_x*"])[0],
     provider_name = "{name}",
     version = "{version}",
+    source = "{source}",
     sha = "{sha}",
     platform = "{os}_{arch}",
     visibility = ["//visibility:public"]
@@ -230,6 +231,7 @@ terraform_provider(
 """.format(
     name = name,
     version = version,
+    source = ctx.attr.source,
     sha = sha256,
     os = os,
     arch = arch,
@@ -251,6 +253,10 @@ terraform_provider_download = repository_rule(
             mandatory = True,
             doc = "Version of the Terraform provider",
         ),
+        "source": attr.string(
+            mandatory = True,
+            doc = "Source for provider used in required_providers block",
+        ),
     },
     doc = "Downloads a Terraform provider",
 )
@@ -261,6 +267,7 @@ TerraformProviderInfo = provider(
         "provider": "Path to Terraform provider",
         "provider_name": "Name of provider",
         "version": "Version of Terraform provider",
+        "source": "Source for provider used in required_providers block",
         "sha": "SHA of Terraform provider binary",
         "platform": "Platform of Terraform provider binary, like linux_amd64",
     })
@@ -274,6 +281,7 @@ def _terraform_provider_impl(ctx):
             provider = ctx.file.provider,
             provider_name = ctx.attr.provider_name,
             version = ctx.attr.version,
+            source = ctx.attr.source,
             sha = ctx.attr.sha,
             platform = ctx.attr.platform,
         ),
@@ -295,6 +303,10 @@ terraform_provider = rule(
             mandatory = True,
             doc = "Version of Terraform provider",
         ),
+        "source": attr.string(
+            mandatory = True,
+            doc = "Source for provider used in required_providers block",
+        ),
         "sha": attr.string(
             mandatory = True,
             doc = "SHA of Terraform provider binary",
@@ -306,11 +318,12 @@ terraform_provider = rule(
     },
 )
 
-def download_terraform_provider_versions(provider_name, versions):
+def download_terraform_provider_versions(provider_name, source, versions):
     """Downloads multiple terraform provider versions.
 
     Args:
         provider_name: string name for provider
+        source: Source for provider, like registry.terraform.io/hashicorp/local
         versions: dict from terraform version to sha256 of SHA56SUMS file for that version.
     """
     for version, sha in versions.items():
@@ -322,5 +335,6 @@ def download_terraform_provider_versions(provider_name, versions):
             ),
             provider_name = provider_name,
             version = version,
+            source = source,
             sha256 = sha,
         )

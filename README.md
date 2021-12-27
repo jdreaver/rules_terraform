@@ -9,7 +9,6 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
-- Auto generate provider version bounds in a TF file
 - Ensure we are using already downloaded providers and we aren't downloading new
   ones
   - In Terraform >= 0.13 or whatever use the incantation that says we are using

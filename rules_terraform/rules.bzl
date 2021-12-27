@@ -9,10 +9,47 @@ TerraformModuleInfo = provider(
     })
 
 def _terraform_module_impl(ctx):
+    source_files = []
+
+    # Symlink all source files so they are stored alongside any generated files.
+    for src in ctx.files.srcs:
+        src_symlink = ctx.actions.declare_file(src.basename)
+        ctx.actions.symlink(output = src_symlink, target_file = src)
+        source_files.append(src_symlink)
+
+    # Generate required_providers block based on any provider inputs to this
+    # rule.
+    if ctx.attr.generate_required_providers and ctx.attr.providers:
+        required_providers_lines = [
+            "terraform {",
+            "  required_providers {",
+        ]
+        for provider in ctx.attr.providers:
+            provider = provider[TerraformProviderInfo]
+            required_providers_lines.extend([
+                "    {} = {{".format(provider.provider_name),
+                '      source  = "{}"'.format(provider.source),
+                '      version = "{}"'.format(provider.version),
+                "    }",
+            ])
+        required_providers_lines.extend([
+            "  }",
+            "}",
+        ])
+
+        required_providers_file = ctx.actions.declare_file("_required_providers.tf")
+        ctx.actions.write(
+            required_providers_file,
+            "\n".join(required_providers_lines),
+            is_executable = False,
+        )
+        source_files.append(required_providers_file)
+
     return [
+        DefaultInfo(files = depset(source_files)),
         TerraformModuleInfo(
             source_files = depset(
-                ctx.files.srcs,
+                source_files,
                 transitive = [dep[TerraformModuleInfo].source_files for dep in ctx.attr.deps]
             ),
             modules = depset(
@@ -40,6 +77,10 @@ terraform_module = rule(
         "deps": attr.label_list(
             providers = [TerraformModuleInfo],
         ),
+        "generate_required_providers": attr.bool(
+            default = True,
+            doc = "Generate a required_providers block with provider versions",
+        ),
     },
 )
 
@@ -57,6 +98,7 @@ def _terraform_root_module_impl(ctx):
 
     module = ctx.attr.module[TerraformModuleInfo]
     source_files_list = module.source_files.to_list()
+
     modules_list = module.modules.to_list()
     providers_list = [p[TerraformProviderInfo] for p in module.providers.to_list()]
     provider_files = [p.provider for p in providers_list]
@@ -118,16 +160,9 @@ exec "$terraform" $@
 terraform="$(realpath {binary})"
 
 # Move to Terraform root directory so paths are relative to here
-pushd {package}
+cd $(dirname {dot_terraform})
 "$terraform" init
 {touch_lock_file}
-
-# Go back to main execution directory and move .terraform to where we
-# declared it to be (it is in some deep bazel-out directory)
-popd
-rm -r {dot_terraform}
-mv "{package}/.terraform" {dot_terraform}
-mv "{package}/.terraform.lock.hcl" {terraform_lock_file}
         """.format(
             binary = terraform_binary.path,
             package = ctx.label.package,

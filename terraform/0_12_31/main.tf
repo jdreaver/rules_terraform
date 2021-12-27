@@ -7,14 +7,3 @@ resource "local_file" "hello" {
 module "time" {
   source = "../time_module"
 }
-
-# TODO: Auto-generating this is necessary or else "terraform init" will try to
-# upgrade providers, ignoring the versions we specify in bazel.
-terraform {
-  required_providers {
-    local = {
-      source  = "registry.terraform.io/hashicorp/local"
-      version = "2.1.0"
-    }
-  }
-}

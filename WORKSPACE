@@ -16,6 +16,7 @@ download_terraform_versions({
 
 download_terraform_provider_versions(
     "local",
+    "registry.terraform.io/hashicorp/local",
     {
         "2.1.0": "dae594d82be6be5ee83f8d081cc8a05af45ac1bbf7fdb8bea16ab4c1d6032043",
     },
@@ -23,6 +24,7 @@ download_terraform_provider_versions(
 
 download_terraform_provider_versions(
     "time",
+    "registry.terraform.io/hashicorp/time",
     {
         "0.7.0": "ccd73836657ce361f83a5f11f0359cd366f2a228a0c03c78db11baf47c5a2d94",
     },
