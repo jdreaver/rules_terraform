@@ -63,7 +63,6 @@ def _terraform_root_module_impl(ctx):
 
     # Create a plugin cache dir
     plugin_cache_dir = "plugin_cache"
-    dot_terraform_files = []
     if terraform_version < "0.13": # TODO: Does this actually work with 0.14?
         cached_providers = []
         for provider in providers_list:
@@ -83,21 +82,6 @@ def _terraform_root_module_impl(ctx):
             )
             cached_providers.append(output)
 
-        # Create .terraform expected files
-        for provider in providers_list:
-            dot_terraform_files.append(ctx.actions.declare_file(
-                ".terraform/plugins/{}/{}".format(
-                    provider.platform,
-                    provider.provider.basename,
-                )
-            ))
-        if providers_list:
-            dot_terraform_files.append(ctx.actions.declare_file(
-                ".terraform/plugins/{}/lock.json".format(
-                    provider.platform,
-                )
-            ))
-
         # lock_json_output = ctx.actions.declare_file(".terraform/plugins/{}/lock.json".format(
         #     provider.platform,
         # ))
@@ -110,9 +94,6 @@ def _terraform_root_module_impl(ctx):
         # )
     else:
         fail("Don't know how to construct .terraform outputs for terraform versions >= 0.13")
-
-    if modules_list:
-        dot_terraform_files.append(ctx.actions.declare_file(".terraform/modules/modules.json"))
 
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
@@ -135,18 +116,15 @@ exec "$terraform" $@
     )
 
     # Run terraform init
-    dot_terraform = "{}/{}/.terraform".format(
-        ctx.bin_dir.path,
-        ctx.label.package,
-    )
+    dot_terraform = ctx.actions.declare_directory(".terraform")
     ctx.actions.run_shell(
         inputs = [terraform_binary] + source_files_list + cached_providers,
-        outputs = dot_terraform_files,
+        outputs = [dot_terraform],
         mnemonic = "TerraformInitialize",
         command = 'terraform="$(realpath {binary})" && cd {package} && ls -lah && "$terraform" init && cd - && rm -r {dot_terraform} && mv "{package}/.terraform" {dot_terraform}'.format(
             binary = terraform_binary.path,
             package = ctx.label.package,
-            dot_terraform = dot_terraform,
+            dot_terraform = dot_terraform.path,
         ),
         # Without use_default_shell_env I was seeing issues where "getent"
         # wasn't on $PATH. Could have been a NixOS thing.
@@ -154,7 +132,7 @@ exec "$terraform" $@
         env = {
             "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
             # TODO: This doesn't work, and this is why we need to run "mv" and use run_shell
-            # "TF_DATA_DIR": dot_terraform,
+            # "TF_DATA_DIR": dot_terraform.path,
         }
     )
 
@@ -167,7 +145,7 @@ exec "$terraform" $@
     # ctx.actions.run(
     #     executable = terraform_binary,
     #     inputs = source_files_list + cached_providers,
-    #     outputs = dot_terraform_files,
+    #     outputs = [dot_terraform],
     #     mnemonic = "TerraformInitialize",
     #     arguments = [args],
     #     # Without use_default_shell_env I was seeing issues where "getent"
@@ -175,12 +153,12 @@ exec "$terraform" $@
     #     use_default_shell_env = True,
     #     env = {
     #         "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
-    #         "TF_DATA_DIR": dot_terraform,
+    #         "TF_DATA_DIR": dot_terraform.path,
     #     }
     # )
 
     runfiles = ctx.runfiles(
-        files = [terraform_binary, wrapper] + dot_terraform_files +
+        files = [terraform_binary, wrapper, dot_terraform] +
                 source_files_list + cached_providers,
     )
     return [
