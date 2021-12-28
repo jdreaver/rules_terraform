@@ -1,7 +1,7 @@
 # local provider
 resource "local_file" "hello" {
   content  = "Hello, world!"
-  filename = "/tmp/bazel-terraform-demo/hello.txt"
+  filename = "/tmp/rules_terraform/hello.txt"
 }
 
 module "time" {
