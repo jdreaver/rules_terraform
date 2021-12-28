@@ -9,6 +9,8 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
+- Rename repo to `rules_terraform`, move `rule_terraform` subdir to root, and
+  move TF code under something like `test`, maybe with its own `WORKSPACE`.
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
