@@ -97,6 +97,29 @@ terraform/0_12_31
 terraform/1_1_2
 ```
 
+Also, how many Terraform modules are using a given Terraform version?
+
+```
+$ bazel query "attr(terraform, @terraform_1_1_2//:terraform, //...)" --output package
+terraform/1_1_2
+terraform/time_module
+```
+
+How about just root modules?
+
+```
+$ bazel query "kind(terraform_root_module, attr(terraform, @terraform_1_1_2//:terraform, //...))" --output package
+terraform/1_1_2
+```
+
+How about a count of root modules on each version?
+
+```
+$ bazel query "labels(terraform, kind(terraform_root_module, //...))" | sort | uniq -c
+      1 @terraform_0_12_31//:terraform
+      1 @terraform_1_1_2//:terraform
+```
+
 ### Share variables between Terraform and external tooling
 
 (TODO: This is trivial if we put shared variables in `.bzl` files, which
