@@ -37,7 +37,7 @@ def _terraform_download_impl(ctx):
     # Put a BUILD file here so we can use the resulting binary in other bazel
     # rules.
     ctx.file("BUILD.bazel",
-        """load("@bazel_terraform_demo//rules_terraform:defs.bzl", "terraform_binary")
+        """load("@rules_terraform//:defs.bzl", "terraform_binary")
 
 terraform_binary(
     name = "terraform",
@@ -216,7 +216,7 @@ def _terraform_provider_download_impl(ctx):
     # Put a BUILD file here so we can use the resulting binary in other bazel
     # rules.
     ctx.file("BUILD.bazel",
-        """load("@bazel_terraform_demo//rules_terraform:defs.bzl", "terraform_provider")
+        """load("@rules_terraform//:defs.bzl", "terraform_provider")
 
 terraform_provider(
     name = "provider",

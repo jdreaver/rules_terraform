@@ -1,16 +1,21 @@
-# Bazel Terraform Demo
+# rules_terraform
 
-This is a proof of concept for integrating Bazel with Terraform.
+This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
-## Resources
+## Usage
 
-There are a few Github projects implementing Terraform in Bazel, but this is the
-best one by far: https://github.com/dvulpe/bazel-terraform-rules
+(TODO: Flesh this out once API is more stable)
 
-## TODO:
+- Add incantations to your `WORKSPACE` file to declare which Terraform versions
+  and Terraform provider versions you are using.
+- Put a `BUILD`/`BUILD.bazel` file in each Terraform module directory.
+- Add a `terraform_module` rule for each module, `terraform_root_module` for
+  each root module, and `terraform_*_test` for each kind of test you want to run
+  on your modules.
 
-- Rename repo to `rules_terraform`, move `rule_terraform` subdir to root, and
-  move TF code under something like `test`, maybe with its own `WORKSPACE`.
+## TODO
+
+- Make `test/` its own nested `WORKSPACE`, detached from parent
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
@@ -54,19 +59,6 @@ validate`.
 We already have lots of experience with Bazel, and we know our current usage of
 Terraform won't scale, so this repo is an experiment in wrapping Terraform in
 Bazel to see if we can solve lots of our infrastructure as code problems.
-
-## Usage
-
-(TODO: Flesh this out once API is more stable)
-
-- Add incantations to your `WORKSPACE` file to declare which Terraform versions
-  and Terraform provider versions you are using.
-- Put a `BUILD`/`BUILD.bazel` file in each Terraform module directory.
-- Add a `terraform_module` rule for each module, `terraform_root_module` for
-  each root module, and `terraform_*_test` for each kind of test you want to run
-  on your modules.
-
-## Detailed discussion of problems being solved
 
 ### Cache downloads, builds, and tests
 

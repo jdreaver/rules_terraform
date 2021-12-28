@@ -1,5 +1,5 @@
 load(
-    "//rules_terraform:defs.bzl",
+    "@rules_terraform//:defs.bzl",
     "terraform_module",
     "terraform_root_module",
     "terraform_validate_test",
@@ -15,7 +15,7 @@ terraform_module(
         "@terraform_provider_local_2_1_0//:provider",
     ],
     deps = [
-        "//terraform/time_module:module",
+        "//test/time_module:module",
     ],
 )
 

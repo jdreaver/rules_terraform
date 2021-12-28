@@ -1,5 +1,5 @@
 load(
-    "//rules_terraform:defs.bzl",
+    "@rules_terraform//:defs.bzl",
     "terraform_module",
     "terraform_format_test",
 )

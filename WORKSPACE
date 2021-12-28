@@ -1,7 +1,7 @@
-workspace(name = "bazel_terraform_demo")
+workspace(name = "rules_terraform")
 
 load(
-    "//rules_terraform:defs.bzl",
+    "@rules_terraform//:defs.bzl",
     "download_terraform_versions",
     "download_terraform_provider_versions",
 )
