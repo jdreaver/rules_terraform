@@ -9,6 +9,8 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
 
 ## TODO:
 
+- Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
+  Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
