@@ -28,6 +28,9 @@ best one by far: https://github.com/dvulpe/bazel-terraform-rules
   (YAML files?) like at work to iron it out
   - https://github.com/bazelbuild/bazel/issues/13300
 - Document everything, refactor everything, etc. Make this presentable.
+- Consider using
+  [genquery](https://docs.bazel.build/versions/main/be/general.html#genquery)
+  for common queries, like number of terraform roots on each version
 
 ## Why wrap Terraform in Bazel?
 
