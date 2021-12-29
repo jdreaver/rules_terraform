@@ -33,6 +33,11 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
   (YAML files?) like at work to iron it out
   - https://github.com/bazelbuild/bazel/issues/13300
+  - A rule to create the remote state `backend` block, and rules to create
+    `remote_state` by referencing the `backend` rules in other roots.
+  - Consider leveraging [bazel
+    templates](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
+    to fill in values from Starlark.
 - Document everything, refactor everything, etc. Make this presentable.
 - Consider using
   [genquery](https://docs.bazel.build/versions/main/be/general.html#genquery)
