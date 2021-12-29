@@ -15,7 +15,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
 ## TODO
 
-- Make `test/` its own nested `WORKSPACE`, detached from parent
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
