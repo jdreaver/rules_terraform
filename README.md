@@ -37,6 +37,8 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 - Consider using
   [genquery](https://docs.bazel.build/versions/main/be/general.html#genquery)
   for common queries, like number of terraform roots on each version
+- Make sure to re-enable `bazel test /...` in root workspace in CI once there is
+  something to test
 
 ## Why wrap Terraform in Bazel?
 
