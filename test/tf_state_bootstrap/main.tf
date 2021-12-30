@@ -17,11 +17,19 @@ provider "aws" {
 #
 terraform {
   backend "s3" {
-    # N.B. Make sure this matches bucket name below. We can't use variables
-    # here.
-    bucket = "jdreaver-rules-terraform-test-state"
-    key    = "tf_state_bootstrap"
-    region = "us-west-2"
+    # N.B. Make sure S3 bucket and DynamoDB names match names below. We can't
+    # use variables in backend blocks (see
+    # https://github.com/hashicorp/terraform/issues/13022)
+    #
+    # TODO: How can we share this variable with bazel? It would be nice to
+    # define it once and use it in all of our roots. Maybe this backend block
+    # should be generated with bazel, which would allow us to reference the
+    # bucket and DDB table as variables and perhaps assert that all backends use
+    # a unique key in some higher level integration test.
+    bucket         = "jdreaver-rules-terraform-test-state"
+    key            = "tf_state_bootstrap"
+    region         = "us-west-2"
+    dynamodb_table = "terraform-statelock"
   }
 }
 
