@@ -158,7 +158,7 @@ terraform="$(realpath {binary})"
 # Move to Terraform root directory so things like module paths are relative to
 # this location and we generate .terraform right here where it is declared.
 cd {terraform_root_path}
-"$terraform" init
+"$terraform" init -backend=false
 
 # Touch lock file if it doesn't exist so bazel is happy
 if [ ! -f .terraform.lock.hcl ]; then

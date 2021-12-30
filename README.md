@@ -15,8 +15,16 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
 ## TODO
 
+- Figure out how to initialize backends outside of terraform init but have them
+  persist.
+  - I feel like the only solution is to have `.terraform` persist _somewhere_ on
+    the filesystem. We can't just use a static `.terraform` from `bazel build`.
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
+- Make it so we don't need to re-initialize `.terraform` every time a source
+  file changes. We could use a convention of having a `providers.tf` file that
+  is the input to `terraform init`. This ignores modules though. Hmm.
+  - This also isn't necessarily a big problem.
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
@@ -33,6 +41,13 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
   (YAML files?) like at work to iron it out
   - https://github.com/bazelbuild/bazel/issues/13300
+  - Rule of thumb: values that need to be shared but are known ahead of time,
+    like S3 bucket names, VPC CIDRs, DNS names, etc, are great candidates for
+    things that could be shared via `.bzl` files. However, it is not clear what
+    we should do with "generated identifiers" (VPC IDs, load balancer DNS
+    endpoints, etc). This could be queried from Terraform state, queried at
+    runtime, etc. Also, even if we query them at runtime, we then might need to
+    "join" them with other values, like VPC CIDRs. Not sure.
   - A rule to create the remote state `backend` block, and rules to create
     `remote_state` by referencing the `backend` rules in other roots.
   - Consider leveraging [bazel
