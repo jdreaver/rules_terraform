@@ -38,6 +38,9 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
   - Consider leveraging [bazel
     templates](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
     to fill in values from Starlark.
+  - We could auto-generate
+    [`.auto.tfvars.json`](https://www.terraform.io/language/values/variables#variable-definitions-tfvars-files)
+    files so the variables are automatically loaded.
 - Document everything, refactor everything, etc. Make this presentable.
 - Consider using
   [genquery](https://docs.bazel.build/versions/main/be/general.html#genquery)
