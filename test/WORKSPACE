@@ -13,11 +13,22 @@ load(
 
 download_terraform_versions({
     # These are SHAs of the SHA265SUM file for a given version. They can be
-    # found with e.g.:
-    # curl https://releases.hashicorp.com/terraform/0.12.31/terraform_0.12.31_SHA256SUMS | sha256sum
+    # found with:
+    # curl https://releases.hashicorp.com/terraform/{version}/terraform_{version}_SHA256SUMS | sha256sum
     "0.12.31": "f9a95c24c77091a1ae0ca2539f39ccfb2639c59934858fada6f4950541386fad",
     "1.1.2": "20e4115a8c6aff07421ebc6645056f9a6605ab5a196475ab46a65fea71b6b090",
 })
+
+# Provider SHAs are from the SHA265SUM file for a given version. They can be
+# found with:
+# curl https://releases.hashicorp.com/terraform-provider-{name}/{version}/terraform-provider-{name}_{version}_SHA256SUMS | sha256sum
+download_terraform_provider_versions(
+    "aws",
+    "registry.terraform.io/hashicorp/aws",
+    {
+        "3.67.0": "28a434313ee86d8ed2721360e5741957bcc48b1a102d878f0fb34274f41aee81",
+    },
+)
 
 download_terraform_provider_versions(
     "local",

@@ -16,7 +16,8 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 ## TODO
 
 - Figure out how to initialize backends outside of terraform init but have them
-  persist.
+  persist. We can't initialize S3 backend in bazel without AWS creds, and we
+  can't initialize it after init because .terraform is write-only.
   - I feel like the only solution is to have `.terraform` persist _somewhere_ on
     the filesystem. We can't just use a static `.terraform` from `bazel build`.
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
