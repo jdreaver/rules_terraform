@@ -2,10 +2,6 @@ provider "aws" {
   region = "us-west-2"
 }
 
-# TODO: This backend block doesn't work! We can't initialize it in bazel without
-# AWS creds, and we can't initialize it after init because .terraform is
-# write-only.
-#
 # N.B. When this is first created, we need to comment out the backend block and
 # manually store the state in the local filesystem. Once the bucket exists, we
 # can store the state in the bucket by uncommenting this block:
