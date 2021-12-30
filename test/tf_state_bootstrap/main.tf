@@ -10,20 +10,20 @@ provider "aws" {
 # manually store the state in the local filesystem. Once the bucket exists, we
 # can store the state in the bucket by uncommenting this block:
 #
-# $ terraform apply -state=/tmp/booststrap.tfstate
+# $ terraform apply
 # (uncomment this block)
-# $ terraform init -lock=false
-# $ terraform apply -state=/tmp/booststrap.tfstate
+# $ terraform init
+# $ terraform apply
 #
-# terraform {
-#   backend "s3" {
-#     # N.B. Make sure this matches bucket name below. We can't use variables
-#     # here.
-#     bucket = "jdreaver-rules-terraform-test-state"
-#     key    = "tf_state_bootstrap"
-#     region = "us-west-2"
-#   }
-# }
+terraform {
+  backend "s3" {
+    # N.B. Make sure this matches bucket name below. We can't use variables
+    # here.
+    bucket = "jdreaver-rules-terraform-test-state"
+    key    = "tf_state_bootstrap"
+    region = "us-west-2"
+  }
+}
 
 resource "aws_s3_bucket" "state_bucket" {
   bucket = "jdreaver-rules-terraform-test-state"

@@ -132,65 +132,32 @@ terraform="$(realpath {terraform})"
 
 cd "{package}"
 
+# If TF_DATA_DIR is unset, set it to a special directory under the workspace
+# root. This env var _is_ set in e.g. tests so they can do terraform init
+# without affecting users' .terraform files.
+#
+# We can't store .terraform as a bazel file because there is lots of mutable
+# state in there, and we can't mutate it if it is written from a bazel rule. For
+# example, the S3 backend requires initialization with valid AWS credentials,
+# which we can't provide during a bazel build.
+#
+# TODO: Try to more intelligently cache parts of .terraform, like the providers/
+# directory. We should ideally make installing those as fast as possible.
+#
+export TF_DATA_DIR="${{TF_DATA_DIR:-$BUILD_WORKSPACE_DIRECTORY/.terraform-dirs/{package}/.terraform}}"
+
+export TF_PLUGIN_CACHE_DIR="{plugin_cache_dir}"
+
 exec "$terraform" $@
         """.format(
             package = ctx.label.package,
             terraform = terraform_binary.short_path,
+            plugin_cache_dir = plugin_cache_dir,
         ),
-    )
-
-    # Declare files we are going to generate from init. Note that
-    # .terraform.lock.hcl is only used in Terraform >= 0.14, so we just touch it
-    # if we are below that version.
-    dot_terraform = ctx.actions.declare_directory(".terraform")
-    terraform_lock_file = ctx.actions.declare_file(".terraform.lock.hcl")
-
-    # Write init script to run terraform init
-    init_script = ctx.actions.declare_file("_terraform_init_script")
-    ctx.actions.write(
-        init_script,
-        """set -eu
-
-# Record absolute path of terraform binary because we are about to
-# change directories
-terraform="$(realpath {binary})"
-
-# Move to Terraform root directory so things like module paths are relative to
-# this location and we generate .terraform right here where it is declared.
-cd {terraform_root_path}
-"$terraform" init -backend=false
-
-# Touch lock file if it doesn't exist so bazel is happy
-if [ ! -f .terraform.lock.hcl ]; then
-  touch .terraform.lock.hcl
-fi
-        """.format(
-            binary = terraform_binary.path,
-            package = ctx.label.package,
-            terraform_root_path = "{}/{}".format(
-                ctx.bin_dir.path,
-                ctx.label.package,
-            )
-        ),
-        is_executable = True,
-    )
-
-    # Run terraform init script
-    ctx.actions.run(
-        inputs = [terraform_binary] + source_files_list + cached_providers,
-        outputs = [dot_terraform, terraform_lock_file],
-        mnemonic = "TerraformInitialize",
-        executable = init_script,
-        # Without use_default_shell_env I was seeing issues where "getent"
-        # wasn't on $PATH. Could have been a NixOS thing.
-        use_default_shell_env = True,
-        env = {
-            "TF_PLUGIN_CACHE_DIR": plugin_cache_dir,
-        }
     )
 
     runfiles = ctx.runfiles(
-        files = [terraform_binary, wrapper, dot_terraform, terraform_lock_file] +
+        files = [terraform_binary, wrapper] +
                 source_files_list + cached_providers,
     )
     return [
@@ -229,7 +196,14 @@ def _terraform_validate_test_impl(ctx):
     ctx.actions.write(
         output = exe,
         is_executable = True,
-        content = """exec "{terraform}" validate""".format(
+        content = """
+set -eu
+
+export TF_DATA_DIR=.terraform
+
+"{terraform}" init -backend=false
+
+exec "{terraform}" validate""".format(
             terraform = root.terraform_wrapper.short_path,
         ),
     )

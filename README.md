@@ -15,29 +15,10 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
 ## TODO
 
-- Figure out how to initialize backends outside of terraform init but have them
-  persist. We can't initialize S3 backend in bazel without AWS creds, and we
-  can't initialize it after init because .terraform is write-only.
-  - I tried storing `.terraform` on disk using `export
-    TF_DATA_DIR="$BUILD_WORKSPACE_DIRECTORY/{package}/.terraform"` and copying
-    the built `.terraform` there in the wrapper script, but there be dragons
-    with that method. How do we know when to update `.terraform`? Also,
-    permissions were wrong.
-  - Should we avoid building `.terraform` entirely in `bazel build`? Maybe we
-    should package up all the symlinks and providers and everything, but store
-    all `.terraform` directories under some
-    `$BUILD_WORKSPACE_DIRECTORY/.terraform-dirs/{package}/.terraform`. Then we
-    can reference with `TF_DATA_DIR`. Then it is up to the user to run `init`,
-    but we can cache plugins and stuff still.
-    - Maybe we need to dissect `.terraform` a bit more. Maybe we can build and
-      symlink `providers/` the `modules.json` but otherwise let `.terraform` be
-      user-managed?
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
-- Make it so we don't need to re-initialize `.terraform` every time a source
-  file changes. We could use a convention of having a `providers.tf` file that
-  is the input to `terraform init`. This ignores modules though. Hmm.
-  - This also isn't necessarily a big problem.
+- Make `.terraform-dirs` configurable somehow.
+  - Also by default rename it to `.bazel-dot-terraform-dirs` or something
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
