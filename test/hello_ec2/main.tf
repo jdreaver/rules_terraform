@@ -74,13 +74,6 @@ resource "aws_instance" "hello_ec2" {
   availability_zone = data.terraform_remote_state.vpc.outputs.public_subnet_az
   key_name          = aws_key_pair.hello_ec2.key_name
 
-  #   user_data = <<-EOF
-  #                 #!/bin/bash
-  #                 sudo apt update -y
-  #                 sudo apt install apache2 -y
-  #                 sudo systemctl start apache2
-  #                 sudo bash -c 'echo your very first web server > /var/www/html/index.html'
-  #                 EOF
   tags = {
     Name = "rules-terraform-test-hello-ec2"
   }
