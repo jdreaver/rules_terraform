@@ -3,6 +3,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "state_bucket" {
+  # TODO: Read this name from bazel
   bucket = "jdreaver-rules-terraform-test-state"
   acl    = "private"
 
@@ -12,6 +13,7 @@ resource "aws_s3_bucket" "state_bucket" {
 }
 
 resource "aws_dynamodb_table" "terraform_statelock" {
+  # TODO: Read this name from bazel
   name         = "terraform-statelock"
   hash_key     = "LockID"
   billing_mode = "PAY_PER_REQUEST"

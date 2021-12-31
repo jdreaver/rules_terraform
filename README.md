@@ -15,6 +15,20 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
 ## TODO
 
+- Figure out how to make DAG of terraform roots
+  - Make it clear that the state S3 bucket and DynamoDB table are from
+    `tf_bootstrap_state`, so that shows up as a dependency of the other modules.
+    Do we have to reify the backend config somehow in `tf_bootstrap_state`'s
+    BUILD file, and then read that as a target in other files?
+	- Make sure to also read the S3 bucket name and DDB table name in the TF
+      blocks that actually create them.
+  - Maybe "making a DAG of roots" is the wrong way to think about it. The real
+    problem we want to solve is given some set of files that changed, what do we
+    need to deploy. That might involve an `rdeps` query filtered on
+    `terraform_root_module` rules. It also means we might want to reify configs
+    in `BUILD` files so they get a label.
+  - It is really easy to get caught up in stringly-typed references. Maybe we
+    have to settle for an 80/20 solution of explicitly annotating dependencies?
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
