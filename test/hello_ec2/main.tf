@@ -92,8 +92,10 @@ resource "aws_instance" "hello_ec2" {
 }
 
 resource "aws_key_pair" "hello_ec2" {
-  key_name   = "hello-ec2-key"
-  public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
+  key_name = "hello-ec2-key"
+  # If you are reading this and want to try this out you should change to your
+  # public key
+  public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILwoAJNSGvmkNJ5SB+F3QO0gb4k4ml70/omPtbkR6g1V johndreaver@gmail.com"
 }
 
 resource "aws_network_interface" "hello_ec2" {
