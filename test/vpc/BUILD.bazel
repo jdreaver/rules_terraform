@@ -17,6 +17,7 @@ generate_s3_backend(
     key = "vpc",
     region = common_config.state_s3_region,
     dynamodb_table = common_config.state_dynamodb_table,
+    visibility = ["//visibility:public"],
 )
 
 terraform_module(

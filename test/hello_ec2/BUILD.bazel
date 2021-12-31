@@ -6,7 +6,11 @@ load(
     "terraform_format_test",
 )
 
-load("//common:generate_backend.bzl", "generate_s3_backend")
+load(
+    "//common:generate_backend.bzl",
+    "generate_s3_backend",
+    "generate_s3_remote_state",
+)
 load("//common:config.bzl", "common_config")
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
@@ -19,11 +23,18 @@ generate_s3_backend(
     dynamodb_table = common_config.state_dynamodb_table,
 )
 
+generate_s3_remote_state(
+    name = "vpc_remote_state",
+    variable_name = "vpc",
+    backend = "//vpc:backend",
+)
+
 terraform_module(
     name = "module",
     srcs = [
         "main.tf",
         ":backend",
+        ":vpc_remote_state",
     ],
     providers = [
         "@terraform_provider_aws_3_67_0//:provider",

@@ -46,8 +46,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     endpoints, etc). This could be queried from Terraform state, queried at
     runtime, etc. Also, even if we query them at runtime, we then might need to
     "join" them with other values, like VPC CIDRs. Not sure.
-  - A rule to create the remote state `backend` block, and rules to create
-    `remote_state` by referencing the `backend` rules in other roots.
   - Consider leveraging [bazel
     templates](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
     to fill in values from Starlark.
@@ -55,6 +53,8 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     [`.auto.tfvars.json`](https://www.terraform.io/language/values/variables#variable-definitions-tfvars-files)
     files so the variables are automatically loaded.
 - Document everything, refactor everything, etc. Make this presentable.
+- Add a top-level test asserting all S3 backend keys are unique. Duplicating
+  keys because of a copy/paste error is really common.
 - Consider using
   [genquery](https://docs.bazel.build/versions/main/be/general.html#genquery)
   for common queries, like number of terraform roots on each version
