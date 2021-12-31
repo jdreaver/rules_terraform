@@ -21,9 +21,14 @@ resource "aws_vpc" "main" {
   }
 }
 
+locals {
+  public_subnet_az = "us-west-2c"
+}
+
 resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.25.0.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.25.0.0/24"
+  availability_zone = local.public_subnet_az
 
   tags = {
     Name = "rules-terraform-test-subnet"
@@ -53,4 +58,8 @@ output "vpc_id" {
 
 output "public_subnet_id" {
   value = aws_subnet.public.id
+}
+
+output "public_subnet_az" {
+  value = local.public_subnet_az
 }

@@ -21,7 +21,9 @@ terraform {
     # define it once and use it in all of our roots. Maybe this backend block
     # should be generated with bazel, which would allow us to reference the
     # bucket and DDB table as variables and perhaps assert that all backends use
-    # a unique key in some higher level integration test.
+    # a unique key in some higher level integration test. (Make sure to this in
+    # such a way that it is clear this module is a dependency of all other
+    # modules that use this bucket and DynamoDB table.)
     bucket         = "jdreaver-rules-terraform-test-state"
     key            = "tf_state_bootstrap"
     region         = "us-west-2"
