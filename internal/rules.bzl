@@ -20,27 +20,28 @@ def _terraform_module_impl(ctx):
     # Generate required_providers block based on any provider inputs to this
     # rule.
     if ctx.attr.generate_required_providers and ctx.attr.providers:
-        required_providers_lines = [
-            "terraform {",
-            "  required_providers {",
-        ]
+        required_providers = []
         for provider in ctx.attr.providers:
             provider = provider[TerraformProviderInfo]
-            required_providers_lines.extend([
-                "    {} = {{".format(provider.provider_name),
-                '      source  = "{}"'.format(provider.source),
-                '      version = "{}"'.format(provider.version),
-                "    }",
-            ])
-        required_providers_lines.extend([
-            "  }",
-            "}",
-        ])
+            required_providers.append({
+                provider.provider_name: {
+                    "source": provider.source,
+                    "version": provider.version,
+                }
+            })
 
-        required_providers_file = ctx.actions.declare_file("__bazel_required_providers.tf")
+        required_providers_struct = struct(
+            terraform = struct (
+                required_providers = required_providers
+            ),
+        )
+
+        required_providers_file = ctx.actions.declare_file("__bazel_required_providers.tf.json")
         ctx.actions.write(
             required_providers_file,
-            "\n".join(required_providers_lines),
+            # N.B. to_json() is deprecated as of bazel 4.0 because there is a
+            # json.encode() function.
+            required_providers_struct.to_json(),
             is_executable = False,
         )
         source_files.append(required_providers_file)
