@@ -6,11 +6,34 @@ load(
     "terraform_format_test",
 )
 
+load("//common:generate_backend.bzl", "generate_s3_backend")
+load("//common:config.bzl", "common_config")
+
 TERRAFORM = "@terraform_1_1_2//:terraform"
+
+# N.B. When this is first created, we need to comment out the backend block and
+# manually store the state in the local filesystem. Once the bucket exists, we
+# can store the state in the bucket by uncommenting this block:
+#
+# 1. Comment out backend
+# 2. $ terraform apply
+# 3. Uncomment backend
+# 4. $ terraform init
+# 5. $ terraform apply
+generate_s3_backend(
+    name = "backend",
+    bucket = common_config.state_s3_bucket,
+    key = "tf_state_bootstrap",
+    region = common_config.state_s3_region,
+    dynamodb_table = common_config.state_dynamodb_table,
+)
 
 terraform_module(
     name = "module",
-    srcs = glob(["**/*.tf"]),
+    srcs = [
+        "main.tf",
+        ":backend",
+    ],
     providers = [
         "@terraform_provider_aws_3_67_0//:provider",
     ],

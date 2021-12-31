@@ -5,7 +5,7 @@ provider "aws" {
 # TODO: Generate this reference to remote state in bazel so we know
 data "terraform_remote_state" "vpc" {
   backend = "s3"
-  # TODO: DRY these values with vpc modeula
+  # TODO: DRY these values with vpc module
   config = {
     bucket = "jdreaver-rules-terraform-test-state"
     key    = "vpc"

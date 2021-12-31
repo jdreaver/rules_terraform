@@ -11,11 +11,17 @@ TerraformModuleInfo = provider(
 def _terraform_module_impl(ctx):
     source_files = []
 
-    # Symlink all source files so they are stored alongside any generated files.
+    # Symlink all non-generated files so they are stored alongside any generated
+    # files. Terraform runs for a given directory and the files need to be in
+    # their correct positions, so we can't just reference the different input
+    # files if they are in different directories in the bazel sandbox.
     for src in ctx.files.srcs:
-        src_symlink = ctx.actions.declare_file(src.basename)
-        ctx.actions.symlink(output = src_symlink, target_file = src)
-        source_files.append(src_symlink)
+        if src.is_source:
+            src_symlink = ctx.actions.declare_file(src.basename)
+            ctx.actions.symlink(output = src_symlink, target_file = src)
+            source_files.append(src_symlink)
+        else:
+            source_files.append(src)
 
     # Generate required_providers block based on any provider inputs to this
     # rule.

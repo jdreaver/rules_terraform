@@ -6,13 +6,24 @@ load(
     "terraform_format_test",
 )
 
+load("//common:generate_backend.bzl", "generate_s3_backend")
+load("//common:config.bzl", "common_config")
+
 TERRAFORM = "@terraform_1_1_2//:terraform"
+
+generate_s3_backend(
+    name = "backend",
+    bucket = common_config.state_s3_bucket,
+    key = "hello_ec2",
+    region = common_config.state_s3_region,
+    dynamodb_table = common_config.state_dynamodb_table,
+)
 
 terraform_module(
     name = "module",
     srcs = [
         "main.tf",
-        "backend.tf.json",
+        ":backend",
     ],
     providers = [
         "@terraform_provider_aws_3_67_0//:provider",

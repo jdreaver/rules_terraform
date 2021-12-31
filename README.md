@@ -25,7 +25,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
-- Run more complex Terraform examples, like AWS resources
 - Ensure we are using already downloaded providers and we aren't downloading new
   ones
   - Looks like 0.13.0 is when the new provider installation methods were
