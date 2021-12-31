@@ -10,7 +10,10 @@ TERRAFORM = "@terraform_1_1_2//:terraform"
 
 terraform_module(
     name = "module",
-    srcs = glob(["**/*.tf"]),
+    srcs = [
+        "main.tf",
+        "backend.tf.json",
+    ],
     providers = [
         "@terraform_provider_aws_3_67_0//:provider",
     ],

@@ -2,16 +2,6 @@ provider "aws" {
   region = "us-west-2"
 }
 
-terraform {
-  backend "s3" {
-    # TODO: Share S3 bucket and dynamodb table values with other modules
-    bucket         = "jdreaver-rules-terraform-test-state"
-    key            = "hello_ec2"
-    region         = "us-west-2"
-    dynamodb_table = "terraform-statelock"
-  }
-}
-
 # TODO: Generate this reference to remote state in bazel so we know
 data "terraform_remote_state" "vpc" {
   backend = "s3"
