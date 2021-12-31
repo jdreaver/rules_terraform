@@ -1,2 +1,2 @@
 /bazel-*
-/.terraform-dirs/
+.terraform/

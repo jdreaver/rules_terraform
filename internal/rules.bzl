@@ -151,7 +151,7 @@ cd "{package}"
 # TODO: Try to more intelligently cache parts of .terraform, like the providers/
 # directory. We should ideally make installing those as fast as possible.
 #
-export TF_DATA_DIR="${{TF_DATA_DIR:-$BUILD_WORKSPACE_DIRECTORY/.terraform-dirs/{package}/.terraform}}"
+export TF_DATA_DIR="${{TF_DATA_DIR:-$BUILD_WORKSPACE_DIRECTORY/{package}/.terraform}}"
 
 export TF_PLUGIN_CACHE_DIR="{plugin_cache_dir}"
 

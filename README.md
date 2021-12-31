@@ -17,11 +17,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
-- Make `.terraform-dirs` configurable somehow.
-  - Also by default rename it to `.bazel-dot-terraform-dirs` or something
-  - Consider just putting these in the source tree as `.terraform`. I was
-    originally worried about conflicting with any "raw" `.terraform` files, but
-    it should be fine.
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
@@ -33,7 +28,8 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 	- https://www.terraform.io/cli/config/config-file#explicit-installation-method-configuration
 	- We can use the filesystem_mirror block
   - Try making `terraform init` faster. I think downloading providers is the
-    slowest part. Maybe we can symlink providers directly?
+    slowest part. Maybe we can symlink providers directly? (It looks like we
+    actually are already just symlinking providers, FWIW)
 - Use amd64 for Terraform versions that don't have arm64
 - Ensure we don't download terraform binaries we don't actually need
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
