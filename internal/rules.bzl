@@ -78,7 +78,6 @@ terraform_module = rule(
             allow_files = True,
         ),
         "providers": attr.label_list(
-            mandatory = True,
             providers = [TerraformProviderInfo],
         ),
         "deps": attr.label_list(
