@@ -28,7 +28,8 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     `terraform_root_module` rules. It also means we might want to reify configs
     in `BUILD` files so they get a label.
   - It is really easy to get caught up in stringly-typed references. Maybe we
-    have to settle for an 80/20 solution of explicitly annotating dependencies?
+    have to settle for an 80/20 solution of explicitly annotating dependencies,
+    kind of like in Terragrunt's `dependencies` blocks?
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
@@ -62,6 +63,10 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
   - We could auto-generate
     [`.auto.tfvars.json`](https://www.terraform.io/language/values/variables#variable-definitions-tfvars-files)
     files so the variables are automatically loaded.
+  - Think outside the box: we could make a custom Terraform provider that makes
+    the bazel integration simpler. For example, we can have a `dependency` block
+    similar to Terragrunt where we can centralize dependencies instead of making
+    a bunch of template-like bazel rules.
 - Document everything, refactor everything, etc. Make this presentable.
 - Add a top-level test asserting all S3 backend keys are unique. Duplicating
   keys because of a copy/paste error is really common.
