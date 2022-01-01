@@ -13,6 +13,21 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
   each root module, and `terraform_*_test` for each kind of test you want to run
   on your modules.
 
+## Features
+
+- Automatically download Terraform and provider binaries and cache them via
+  bazel.
+- Cache test results like `terraform fmt -check` and `terraform validate` and
+  only re-run them as needed.
+- Hermetically build Terraform dependencies, like external modules and providers.
+- Be explicit about Terraform module dependencies and use `bazel query` to build
+  a DAG of module dependencies.
+- Auto-generate `backend` blocks and `terraform_remote_state` based on other
+  modules' backend blocks.
+  - (TODO: This is currently only implemented for S3 and is inlined into the
+    `test` code. Make this more general by e.g. providing a JSON object for
+    backend config and passing that around.)
+
 ## TODO
 
 - Figure out how to make DAG of terraform roots
