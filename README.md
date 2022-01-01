@@ -60,7 +60,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
   - Try making `terraform init` faster. I think downloading providers is the
     slowest part. Maybe we can symlink providers directly? (It looks like we
     actually are already just symlinking providers, FWIW)
-- Use amd64 for Terraform versions that don't have arm64
 - Ensure we don't download terraform binaries we don't actually need
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
   (YAML files?) like at work to iron it out

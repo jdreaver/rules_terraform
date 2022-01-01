@@ -1,5 +1,5 @@
 def _terraform_download_impl(ctx):
-    os, arch = _detect_os_arch(ctx)
+    platform = _detect_platform(ctx)
     version = ctx.attr.version
 
     # First get SHA256SUMS file so we can get all of the individual zip SHAs
@@ -14,16 +14,28 @@ def _terraform_download_impl(ctx):
     )
     sha_content = ctx.read("terraform_sha256sums")
     sha_by_zip = _parse_sha_file(sha_content)
-    zip = "terraform_{version}_{os}_{arch}.zip".format(
+
+    # Terraform does not provide darwin_arm64 binaries before version
+    # 1.0.2 or so. Also, many provider versions do not provide
+    # darwin_arm64. Therefore, if the current platform is darwin_arm64
+    # and we can't find a SHA for that platform, we fall back to
+    # darwin_amd64 and depend on Rosetta.
+    zip = "terraform_{version}_{platform}.zip".format(
         version = version,
-        os = os,
-        arch = arch,
+        platform = platform,
     )
+    if platform == "darwin_arm64" and zip not in sha_by_zip:
+        platform = "darwin_amd64"
+        zip = "terraform_{version}_{platform}.zip".format(
+            version = version,
+            platform = platform,
+        )
+    sha256 = sha_by_zip[zip]
+
     url = "https://releases.hashicorp.com/terraform/{version}/{zip}".format(
         version = version,
         zip = zip,
     )
-    sha256 = sha_by_zip[zip]
 
     # Now download actual Terraform zip
     ctx.report_progress("Downloading and extracting Terraform")
@@ -51,7 +63,7 @@ terraform_binary(
         executable=False
     )
 
-def _detect_os_arch(ctx):
+def _detect_platform(ctx):
     if ctx.os.name == "linux":
         os = "linux"
     elif ctx.os.name == "mac os x":
@@ -71,7 +83,7 @@ def _detect_os_arch(ctx):
     else:
         fail("Unable to determing processor architecture.")
 
-    return os, arch
+    return "{}_{}".format(os, arch)
 
 def _parse_sha_file(file_content):
     """Parses terraform SHA256SUMS file and returns map from zip to SHA.
@@ -176,7 +188,7 @@ def download_terraform_versions(versions):
 
 def _terraform_provider_download_impl(ctx):
     name = ctx.attr.provider_name
-    os, arch = _detect_os_arch(ctx)
+    platform = _detect_platform(ctx)
     version = ctx.attr.version
 
     # First get SHA256SUMS file so we can get all of the individual zip SHAs
@@ -192,18 +204,31 @@ def _terraform_provider_download_impl(ctx):
     )
     sha_content = ctx.read("terraform_provider_sha256sums")
     sha_by_zip = _parse_sha_file(sha_content)
-    zip = "terraform-provider-{name}_{version}_{os}_{arch}.zip".format(
+
+    # Terraform does not provide darwin_arm64 binaries before version
+    # 1.0.2 or so. Also, many provider versions do not provide
+    # darwin_arm64. Therefore, if the current platform is darwin_arm64
+    # and we can't find a SHA for that platform, we fall back to
+    # darwin_amd64 and depend on Rosetta.
+    zip = "terraform-provider-{name}_{version}_{platform}.zip".format(
         name = name,
         version = version,
-        os = os,
-        arch = arch,
+        platform = platform,
     )
+    if platform == "darwin_arm64" and zip not in sha_by_zip:
+        platform = "darwin_amd64"
+        zip = "terraform-provider-{name}_{version}_{platform}.zip".format(
+            name = name,
+            version = version,
+            platform = platform,
+        )
+    sha256 = sha_by_zip[zip]
+
     url = "https://releases.hashicorp.com/terraform-provider-{name}/{version}/{zip}".format(
         name = name,
         version = version,
         zip = zip,
     )
-    sha256 = sha_by_zip[zip]
 
     # Now download actual Terraform zip
     ctx.report_progress("Downloading and extracting Terraform provider {}".format(name))
@@ -225,7 +250,7 @@ terraform_provider(
     version = "{version}",
     source = "{source}",
     sha = "{sha}",
-    platform = "{os}_{arch}",
+    platform = "{platform}",
     visibility = ["//visibility:public"]
 )
 """.format(
@@ -233,8 +258,7 @@ terraform_provider(
     version = version,
     source = ctx.attr.source,
     sha = sha256,
-    os = os,
-    arch = arch,
+    platform = platform,
 ),
         executable=False
     )
