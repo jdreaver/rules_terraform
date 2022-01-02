@@ -71,16 +71,42 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     endpoints, etc). This could be queried from Terraform state, queried at
     runtime, etc. Also, even if we query them at runtime, we then might need to
     "join" them with other values, like VPC CIDRs. Not sure.
+  - Consider using jsonnet (e.g. <https://github.com/bazelbuild/rules_jsonnet>)
+    to generate JSON ergonomically.
+	- [Skycfg](https://github.com/stripe/skycfg) is an obvious alternative.
+      Supports YAML encode/decode, but JSON has to go through protobuf.
+	- Coolest new kid on the block for this is [CUE](https://cuelang.org/)
   - Consider leveraging [bazel
     templates](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
     to fill in values from Starlark.
   - We could auto-generate
     [`.auto.tfvars.json`](https://www.terraform.io/language/values/variables#variable-definitions-tfvars-files)
     files so the variables are automatically loaded.
+  - We could also Go or Python for any munging/loading, persisting source/dest
+    JSON .tfvars.json and .tf.json files via rules that just run the Go/Python.
+    - The Starlark we have for generating just the S3 backend tf.json is already
+      super verbose because you have to wrap it in a rule. Also, we don't want
+      to do too much work in the bazel analysis phase because it makes rule
+      evaluation slower.
   - Think outside the box: we could make a custom Terraform provider that makes
     the bazel integration simpler. For example, we can have a `dependency` block
     similar to Terragrunt where we can centralize dependencies instead of making
     a bunch of template-like bazel rules.
+	- Maybe a custom Terraform data source that can read/execute starlark files
+  - Terraform can load JSON files and we can use HCL to get values out. Maybe
+    shared values should be stored in raw JSON, and we share them by just
+    loading the raw JSON files in dependent modules. We could add a rule attr
+    for `var_json_files` or something and in the rule we symlink those files to
+    the current directory and put an extension of `.auto.tfvars.json`
+    - This disadvantage here is this is done at run time instead of build time,
+      so we don't get as granular of dependencies. That is, if a single value in
+      a huge common config JSON file changes, all downstream consumers need
+      rebuilding even if they don't use that value.
+    - Remember that `backend` blocks are specifically annoying in that you can't
+      reference variables. We might need some tiny wrapper that wraps those in
+      `{"terraform": {"backend": {"<type>": <config>}}}`. Or, we have to
+      intercept init commands and add `-backend-config=<config-json-file>`, and
+      also generate an empty config block.
 - Document everything, refactor everything, etc. Make this presentable.
 - Add a top-level test asserting all S3 backend keys are unique. Duplicating
   keys because of a copy/paste error is really common.
