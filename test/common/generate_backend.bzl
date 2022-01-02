@@ -25,9 +25,7 @@ def _generate_s3_backend_impl(ctx):
     )
     ctx.actions.write(
         output,
-        # N.B. to_json() is deprecated as of bazel 4.0 because there is a
-        # json.encode() function.
-        config.to_json(),
+        json.encode(config),
         is_executable = False,
     )
     return [
@@ -78,9 +76,7 @@ def _generate_s3_remote_state(ctx):
     )
     ctx.actions.write(
         output,
-        # N.B. to_json() is deprecated as of bazel 4.0 because there is a
-        # json.encode() function.
-        config.to_json(),
+        json.encode(config),
         is_executable = False,
     )
     return [

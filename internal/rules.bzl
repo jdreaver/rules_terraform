@@ -45,9 +45,7 @@ def _terraform_module_impl(ctx):
         required_providers_file = ctx.actions.declare_file("__bazel_required_providers.tf.json")
         ctx.actions.write(
             required_providers_file,
-            # N.B. to_json() is deprecated as of bazel 4.0 because there is a
-            # json.encode() function.
-            required_providers_struct.to_json(),
+            json.encode(required_providers_struct),
             is_executable = False,
         )
         source_files.append(required_providers_file)

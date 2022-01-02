@@ -9,7 +9,7 @@
     in {
       devShell.x86_64-linux = pkgs.mkShell {
         buildInputs = with pkgs; [
-          bazel
+          bazel_4
           jdk11 # Needed to run some bazel commands
           graphviz # To visualize bazel graph output
         ];
