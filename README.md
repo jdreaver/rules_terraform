@@ -72,7 +72,7 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     runtime, etc. Also, even if we query them at runtime, we then might need to
     "join" them with other values, like VPC CIDRs. Not sure.
   - Consider using jsonnet (e.g. <https://github.com/bazelbuild/rules_jsonnet>)
-    to generate JSON ergonomically.
+    to generate JSON ergonomically. (SEE BRANCH `jsonnet`)
 	- [Skycfg](https://github.com/stripe/skycfg) is an obvious alternative.
       Supports YAML encode/decode, but JSON has to go through protobuf.
 	- Coolest new kid on the block for this is [CUE](https://cuelang.org/)
