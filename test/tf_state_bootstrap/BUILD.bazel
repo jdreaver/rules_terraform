@@ -4,6 +4,7 @@ load(
     "terraform_root_module",
     "terraform_validate_test",
     "terraform_format_test",
+    "terraform_backend",
 )
 
 load("//common:generate_backend.bzl", "generate_s3_backend")
@@ -26,6 +27,12 @@ generate_s3_backend(
     key = "tf_state_bootstrap",
     region = common_config.state_s3_region,
     dynamodb_table = common_config.state_dynamodb_table,
+)
+
+terraform_backend(
+    name = "new_backend", # TODO: Change name
+    backend_type = "s3",
+    config_json = "tmp_backend_config.json",
 )
 
 terraform_module(
