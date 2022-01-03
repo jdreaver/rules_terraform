@@ -45,7 +45,7 @@ def _terraform_module_impl(ctx):
         required_providers_file = ctx.actions.declare_file("__bazel_required_providers.tf.json")
         ctx.actions.write(
             required_providers_file,
-            json.encode(required_providers_struct),
+            json.encode_indent(required_providers_struct, indent = '  '),
             is_executable = False,
         )
         source_files.append(required_providers_file)

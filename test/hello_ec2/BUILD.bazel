@@ -4,26 +4,22 @@ load(
     "terraform_root_module",
     "terraform_validate_test",
     "terraform_format_test",
+    "terraform_backend",
+    "terraform_remote_state",
 )
 
-load(
-    "//common:generate_backend.bzl",
-    "generate_s3_backend",
-    "generate_s3_remote_state",
-)
-load("//common:config.bzl", "common_config")
+load("//common:config.bzl", "create_backend_config")
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
 
-generate_s3_backend(
+terraform_backend(
     name = "backend",
-    bucket = common_config.state_s3_bucket,
-    key = "hello_ec2",
-    region = common_config.state_s3_region,
-    dynamodb_table = common_config.state_dynamodb_table,
+    backend_type = "s3",
+    config = create_backend_config("hello_ec2"),
+    visibility = ["//visibility:public"],
 )
 
-generate_s3_remote_state(
+terraform_remote_state(
     name = "vpc_remote_state",
     variable_name = "vpc",
     backend = "//vpc:backend",

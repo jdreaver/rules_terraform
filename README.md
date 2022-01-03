@@ -78,7 +78,7 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
   - Consider using jsonnet (e.g. <https://github.com/bazelbuild/rules_jsonnet>)
     to generate JSON ergonomically. (SEE BRANCH `jsonnet`)
 	- [Skycfg](https://github.com/stripe/skycfg) is an obvious alternative.
-      Supports YAML encode/decode, but JSON has to go through protobuf.
+      Can JSON encode/decode via the native starlark functions.
 	- Coolest new kid on the block for this is [CUE](https://cuelang.org/)
   - Consider leveraging [bazel
     templates](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)

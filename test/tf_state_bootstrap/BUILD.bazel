@@ -4,10 +4,10 @@ load(
     "terraform_root_module",
     "terraform_validate_test",
     "terraform_format_test",
+    "terraform_backend",
 )
 
-load("//common:generate_backend.bzl", "generate_s3_backend")
-load("//common:config.bzl", "common_config")
+load("//common:config.bzl", "create_backend_config")
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
 
@@ -20,12 +20,10 @@ TERRAFORM = "@terraform_1_1_2//:terraform"
 # 3. Uncomment backend
 # 4. $ terraform init
 # 5. $ terraform apply
-generate_s3_backend(
+terraform_backend(
     name = "backend",
-    bucket = common_config.state_s3_bucket,
-    key = "tf_state_bootstrap",
-    region = common_config.state_s3_region,
-    dynamodb_table = common_config.state_dynamodb_table,
+    backend_type = "s3",
+    config = create_backend_config("tf_state_bootstrap"),
 )
 
 terraform_module(

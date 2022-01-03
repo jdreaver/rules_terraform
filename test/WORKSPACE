@@ -1,9 +1,16 @@
 workspace(name = "test_rules_terraform")
 
+# rules_terraform
 local_repository(
     name = "rules_terraform",
     path = "../",
 )
+
+load("@rules_terraform//:deps.bzl", "rules_terraform_repositories")
+rules_terraform_repositories()
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+bazel_skylib_workspace()
 
 load(
     "@rules_terraform//:defs.bzl",
