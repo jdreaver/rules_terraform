@@ -35,20 +35,19 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
   in this repo and add a CI test for ensuring everything is formatted correctly
   and there are no lint warnings.
 - Figure out how to make DAG of terraform roots
-  - Make it clear that the state S3 bucket and DynamoDB table are from
-    `tf_bootstrap_state`, so that shows up as a dependency of the other modules.
-    Do we have to reify the backend config somehow in `tf_bootstrap_state`'s
-    BUILD file, and then read that as a target in other files?
-	- Make sure to also read the S3 bucket name and DDB table name in the TF
-      blocks that actually create them.
+  - For example, make it clear that the state S3 bucket and DynamoDB table are
+    created in `tf_bootstrap_state` so that shows up as a dependency of the
+    other modules. Do we have to reify the backend config somehow in
+    `tf_bootstrap_state`'s BUILD file, and then read that as a target in other
+    files?
   - Maybe "making a DAG of roots" is the wrong way to think about it. The real
     problem we want to solve is given some set of files that changed, what do we
     need to deploy. That might involve an `rdeps` query filtered on
     `terraform_root_module` rules. It also means we might want to reify configs
     in `BUILD` files so they get a label.
-  - It is really easy to get caught up in stringly-typed references. Maybe we
-    have to settle for an 80/20 solution of explicitly annotating dependencies,
-    kind of like in Terragrunt's `dependencies` blocks?
+  - This feels like a fool's errand without a more specific goal. Maybe we have
+    to settle for an 80/20 solution of explicitly annotating dependencies, kind
+    of like in Terragrunt's `dependencies` blocks?
 - Investigate auto generating BUILD files for existing roots. Gazelle perhaps?
   Read `.terraform` structure?
 - Try implementing toolchain again so we can pick a default Terraform version
@@ -75,42 +74,17 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     endpoints, etc). This could be queried from Terraform state, queried at
     runtime, etc. Also, even if we query them at runtime, we then might need to
     "join" them with other values, like VPC CIDRs. Not sure.
-  - Consider using jsonnet (e.g. <https://github.com/bazelbuild/rules_jsonnet>)
-    to generate JSON ergonomically. (SEE BRANCH `jsonnet`)
-	- [Skycfg](https://github.com/stripe/skycfg) is an obvious alternative.
-      Can JSON encode/decode via the native starlark functions.
+  - We currently use starlark values to generate JSON for generating Terraform
+    variables/backends, but I worry about the scalability and ergonomics of
+    that. Specifically, I think this moves a lot of work into the bazel starlark
+    interpreter in the analyze step instead of the execute step.
+    - Consider using jsonnet (e.g. <https://github.com/bazelbuild/rules_jsonnet>)
+      to generate JSON ergonomically. (SEE BRANCH `jsonnet`)
+	- [Skycfg](https://github.com/stripe/skycfg) or a small starlark execution
+      wrapper in Go is an obvious alternative. Then we get a strict separation
+      between buidl (.bzl) starlark and configuration starlark. Can JSON
+      encode/decode via the native starlark functions.
 	- Coolest new kid on the block for this is [CUE](https://cuelang.org/)
-  - Consider leveraging [bazel
-    templates](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
-    to fill in values from Starlark.
-  - We could auto-generate
-    [`.auto.tfvars.json`](https://www.terraform.io/language/values/variables#variable-definitions-tfvars-files)
-    files so the variables are automatically loaded.
-  - We could also Go or Python for any munging/loading, persisting source/dest
-    JSON .tfvars.json and .tf.json files via rules that just run the Go/Python.
-    - The Starlark we have for generating just the S3 backend tf.json is already
-      super verbose because you have to wrap it in a rule. Also, we don't want
-      to do too much work in the bazel analysis phase because it makes rule
-      evaluation slower.
-  - Think outside the box: we could make a custom Terraform provider that makes
-    the bazel integration simpler. For example, we can have a `dependency` block
-    similar to Terragrunt where we can centralize dependencies instead of making
-    a bunch of template-like bazel rules.
-	- Maybe a custom Terraform data source that can read/execute starlark files
-  - Terraform can load JSON files and we can use HCL to get values out. Maybe
-    shared values should be stored in raw JSON, and we share them by just
-    loading the raw JSON files in dependent modules. We could add a rule attr
-    for `var_json_files` or something and in the rule we symlink those files to
-    the current directory and put an extension of `.auto.tfvars.json`
-    - This disadvantage here is this is done at run time instead of build time,
-      so we don't get as granular of dependencies. That is, if a single value in
-      a huge common config JSON file changes, all downstream consumers need
-      rebuilding even if they don't use that value.
-    - Remember that `backend` blocks are specifically annoying in that you can't
-      reference variables. We might need some tiny wrapper that wraps those in
-      `{"terraform": {"backend": {"<type>": <config>}}}`. Or, we have to
-      intercept init commands and add `-backend-config=<config-json-file>`, and
-      also generate an empty config block.
 - Document everything, refactor everything, etc. Make this presentable.
 - Add a top-level test asserting all S3 backend keys are unique. Duplicating
   keys because of a copy/paste error is really common.

@@ -42,6 +42,12 @@ _terraform_backend_internal = rule(
 def terraform_backend(name, backend_type, config, out = 'backend.tf.json', **kwargs):
     """Generate a .tf.json file for a Terraform backend.
 
+    You can't use variables in Terraform backend blocks
+    (https://github.com/hashicorp/terraform/issues/13022), so it is important
+    for us to generate them if we want to use external variables. Also, this
+    rule can be used as an input to the `terraform_remote_state` rule to
+    generate a `terraform_remote_state` block for another root.
+
     Args:
         name: Rule name
         backend_type: String for the type of backend, like "s3"

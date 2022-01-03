@@ -20,6 +20,10 @@ load(
     _terraform_validate_test = "terraform_validate_test",
     _terraform_format_test = "terraform_format_test",
 )
+load(
+    "//internal:variables.bzl",
+    _terraform_locals = "terraform_locals",
+)
 
 download_terraform_versions = _download_terraform_versions
 download_terraform_provider_versions = _download_terraform_provider_versions
@@ -34,3 +38,5 @@ terraform_remote_state = _terraform_remote_state
 
 terraform_validate_test = _terraform_validate_test
 terraform_format_test = _terraform_format_test
+
+terraform_locals = _terraform_locals

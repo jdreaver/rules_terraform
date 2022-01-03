@@ -5,9 +5,15 @@ load(
     "terraform_validate_test",
     "terraform_format_test",
     "terraform_backend",
+    "terraform_locals",
 )
 
-load("//common:config.bzl", "create_backend_config")
+load(
+    "//common:config.bzl",
+    "state_s3_bucket",
+    "state_dynamodb_table",
+    "create_backend_config",
+)
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
 
@@ -26,11 +32,20 @@ terraform_backend(
     config = create_backend_config("tf_state_bootstrap"),
 )
 
+terraform_locals(
+    name = "locals",
+    variables = {
+        "bucket_name": state_s3_bucket,
+        "dynamodb_table_name": state_dynamodb_table,
+    },
+)
+
 terraform_module(
     name = "module",
     srcs = [
         "main.tf",
         ":backend",
+        ":locals",
     ],
     providers = [
         "@terraform_provider_aws_3_67_0//:provider",
