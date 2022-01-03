@@ -30,6 +30,10 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 
 ## TODO
 
+- Set up
+  [buildifier](https://github.com/bazelbuild/buildtools/blob/master/buildifier/README.md)
+  in this repo and add a CI test for ensuring everything is formatted correctly
+  and there are no lint warnings.
 - Figure out how to make DAG of terraform roots
   - Make it clear that the state S3 bucket and DynamoDB table are from
     `tf_bootstrap_state`, so that shows up as a dependency of the other modules.
