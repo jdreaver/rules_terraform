@@ -1,18 +1,17 @@
 load(
     "@rules_terraform//:defs.bzl",
+    "terraform_backend",
+    "terraform_format_test",
+    "terraform_locals",
     "terraform_module",
     "terraform_root_module",
     "terraform_validate_test",
-    "terraform_format_test",
-    "terraform_backend",
-    "terraform_locals",
 )
-
 load(
     "//common:config.bzl",
-    "state_s3_bucket",
-    "state_dynamodb_table",
     "create_backend_config",
+    "state_dynamodb_table",
+    "state_s3_bucket",
 )
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
