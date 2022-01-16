@@ -14,5 +14,7 @@ go_library(
 go_binary(
     name = "starlark",
     embed = [":starlark_lib"],
-    visibility = ["//:__subpackages__"],
+    # TODO: Do we have to make this public to use it in rules? Any way to re-export?
+    # visibility = ["//:__subpackages__"],
+    visibility = ["//visibility:public"],
 )

@@ -7,12 +7,7 @@ load(
     "terraform_root_module",
     "terraform_validate_test",
 )
-load(
-    "//common:config.bzl",
-    "create_backend_config",
-    "state_dynamodb_table",
-    "state_s3_bucket",
-)
+load("//common:config.bzl", "create_backend_config")
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
 
@@ -33,10 +28,8 @@ terraform_backend(
 
 terraform_locals(
     name = "locals",
-    variables = {
-        "bucket_name": state_s3_bucket,
-        "dynamodb_table_name": state_dynamodb_table,
-    },
+    src = "locals.star",
+    deps = ["//common"],
 )
 
 terraform_module(

@@ -1,0 +1,7 @@
+filegroup(
+    name = "common",
+    srcs = [
+        "config.bzl",
+    ],
+    visibility = ["//visibility:public"],
+)

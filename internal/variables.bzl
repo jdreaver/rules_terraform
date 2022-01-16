@@ -1,20 +1,36 @@
-load("@bazel_skylib//rules:write_file.bzl", "write_file")
+def _terraform_locals_impl(ctx):
+    output = ctx.actions.declare_file(ctx.label.name + "_locals.tf.json")
 
-def terraform_locals(name, variables, **kwargs):
-    """Generate a .tf.json file with the given variables as locals.
-
-    Args:
-        name: Rule name
-        variables: dict from variable name to value
-    """
-
-    locals = struct(
-        locals = variables
+    ctx.actions.run(
+        outputs = [output],
+        inputs = [ctx.file.src] + ctx.files.deps,
+        executable = ctx.executable._starlark_executor,
+        arguments = [
+            "-input", ctx.file.src.path,
+            "-output", output.path,
+            "-expr", "encode_indent(wrap_locals(main()))",
+        ],
     )
 
-    write_file(
-        name = name,
-        out = name + "_locals.tf.json",
-        content = [json.encode_indent(locals, indent = '  ')],
-        **kwargs,
-    )
+    return [DefaultInfo(files = depset([output]))]
+
+terraform_locals = rule(
+    implementation = _terraform_locals_impl,
+    doc = "Creates a .tf.json file defining local variables from a Starlark dict",
+    attrs = {
+        "src": attr.label(
+            doc = "Source Starlark file to execute",
+            mandatory = True,
+            allow_single_file = True,
+        ),
+        "deps": attr.label_list(
+            doc = "Files needed to execute Starlark",
+        ),
+        "_starlark_executor": attr.label(
+            default = Label("//internal/starlark"),
+            allow_single_file = True,
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)

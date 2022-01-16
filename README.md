@@ -74,17 +74,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
     endpoints, etc). This could be queried from Terraform state, queried at
     runtime, etc. Also, even if we query them at runtime, we then might need to
     "join" them with other values, like VPC CIDRs. Not sure.
-  - We currently use starlark values to generate JSON for generating Terraform
-    variables/backends, but I worry about the scalability and ergonomics of
-    that. Specifically, I think this moves a lot of work into the bazel starlark
-    interpreter in the analyze step instead of the execute step.
-    - Consider using jsonnet (e.g. <https://github.com/bazelbuild/rules_jsonnet>)
-      to generate JSON ergonomically. (SEE BRANCH `jsonnet`)
-	- [Skycfg](https://github.com/stripe/skycfg) or a small starlark execution
-      wrapper in Go is an obvious alternative. Then we get a strict separation
-      between buidl (.bzl) starlark and configuration starlark. Can JSON
-      encode/decode via the native starlark functions.
-	- Coolest new kid on the block for this is [CUE](https://cuelang.org/)
 - Document everything, refactor everything, etc. Make this presentable.
 - Add a top-level test asserting all S3 backend keys are unique. Duplicating
   keys because of a copy/paste error is really common.
