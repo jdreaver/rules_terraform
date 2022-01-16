@@ -12,6 +12,7 @@ import (
 
 var input = flag.String("input", "", "input Starlark file path")
 var output = flag.String("output", "", "output JSON file path")
+var expr = flag.String("expr", "encode_indent(main())", "Starlark expression to call to produce output")
 
 func main() {
 	flag.Parse()
@@ -20,51 +21,35 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Execute input Starlark program
+	// Add JSON module to globals
+	starlark.Universe["json"] = starlarkjson.Module
+
+	// Resolve input Starlark program
 	thread := &starlark.Thread{Name: "main", Load: MakeLoad()}
 	globals, err := starlark.ExecFile(thread, *input, nil, nil)
 	if err != nil {
-		panic(fmt.Sprintf("failed to load input file: %v", err))
+		panic(fmt.Sprintf("failed to exec input file: %v", err))
 	}
 
-	// Retrieve main function
-	main := globals["main"]
-
-	// Call main function to get return value
-	val, err := starlark.Call(thread, main, nil, nil)
+	// Resolve lib Starlark program
+	libGlobals, err := starlark.ExecFile(thread, "internal_lib.star", lib, nil)
 	if err != nil {
-		panic(fmt.Sprintf("failed to run: %v", err))
+		panic(fmt.Sprintf("failed to execute internal lib file: %v", err))
+	}
+	for key, val := range libGlobals {
+		globals[key] = val
 	}
 
-	// Encode return value as JSON inside Starlark
-	encode, ok := starlarkjson.Module.Members["encode"]
-	if !ok {
-		panic(fmt.Sprintf("Couldn't find encode in json module: %v", starlarkjson.Module))
-	}
-
-	valJSON, err := starlark.Call(thread, encode, starlark.Tuple([]starlark.Value{val}), []starlark.Tuple{})
+	// Run wrapper that calls main and encodes as JSON
+	val, err := starlark.Eval(thread, "eval_wrapper.star", *expr, globals)
 	if err != nil {
-		panic(fmt.Sprintf("failed to produce JSON from main() result: %v", err))
-	}
-
-	// Indent JSON inside Starlark
-	indent, ok := starlarkjson.Module.Members["indent"]
-	if !ok {
-		panic(fmt.Sprintf("Couldn't find indent in json module: %v", starlarkjson.Module))
-	}
-
-	indentedJSON, err := starlark.Call(thread, indent, starlark.Tuple([]starlark.Value{valJSON}), []starlark.Tuple{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to produce JSON from main() result: %v", err))
+		panic(fmt.Sprintf("failed to eval wrapper: %v", err))
 	}
 
 	// Ensure we got a String
-	jsonString, ok := indentedJSON.(starlark.String)
+	jsonString, ok := val.(starlark.String)
 	if !ok {
-		if err != nil {
-			panic(fmt.Sprintf("output of encode() was not String, but %T", valJSON))
-		}
-
+		panic(fmt.Sprintf("expected String output, but got %T", val))
 	}
 
 	// Write JSON to output file
@@ -73,6 +58,32 @@ func main() {
 		panic(fmt.Sprintf("error writing to output file %s: %v", *output, err))
 	}
 }
+
+// Small helper functions to make execution easier
+const lib = `
+def encode_indent(x):
+    return json.indent(json.encode(x), indent='  ')
+
+# Create local variable definitions for .tf.json file
+def wrap_locals(x):
+    if type(x) != "dict":
+        fail("expected dict, got", type(x))
+    return { "locals": x }
+
+# Create a .tf.json backend block
+def wrap_backend(backend_type, config):
+    if type(backend_type) != "string":
+        fail("expected string for backend_type, got", type(backend_type))
+
+    if type(config) != "dict":
+        fail("expected dict for config, got", type(config))
+
+    return {
+        "backend": {
+            backend_type: config
+        }
+    }
+`
 
 // MakeLoad returns a simple sequential implementation of module loading
 // suitable for use in the REPL.
