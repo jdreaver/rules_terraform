@@ -7,7 +7,6 @@ load(
     "terraform_root_module",
     "terraform_validate_test",
 )
-load("//common:config.bzl", "create_backend_config")
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
 
@@ -22,8 +21,8 @@ TERRAFORM = "@terraform_1_1_2//:terraform"
 # 5. $ terraform apply
 terraform_backend(
     name = "backend",
-    backend_type = "s3",
-    config = create_backend_config("tf_state_bootstrap"),
+    src = "backend.star",
+    deps = ["//common"],
 )
 
 terraform_locals(

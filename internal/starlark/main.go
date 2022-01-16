@@ -79,8 +79,10 @@ def wrap_backend(backend_type, config):
         fail("expected dict for config, got", type(config))
 
     return {
-        "backend": {
-            backend_type: config
+        "terraform": {
+            "backend": {
+                backend_type: config
+            }
         }
     }
 

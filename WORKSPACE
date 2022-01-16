@@ -3,9 +3,6 @@ workspace(name = "rules_terraform")
 load(":deps.bzl", "rules_terraform_repositories")
 rules_terraform_repositories()
 
-load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
-bazel_skylib_workspace()
-
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "io_bazel_rules_go",

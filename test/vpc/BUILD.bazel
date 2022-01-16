@@ -6,15 +6,13 @@ load(
     "terraform_root_module",
     "terraform_validate_test",
 )
-load("//common:config.bzl", "create_backend_config")
 
 TERRAFORM = "@terraform_1_1_2//:terraform"
 
 terraform_backend(
     name = "backend",
-    backend_type = "s3",
-    config = create_backend_config("vpc"),
-    visibility = ["//visibility:public"],
+    src = "backend.star",
+    deps = ["//common"],
 )
 
 terraform_module(

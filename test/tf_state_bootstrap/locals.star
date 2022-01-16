@@ -1,6 +1,6 @@
 # TODO: This import path is relative to the WORKSPACE root. Should we explicitly
 # use the bazel "//common/..." syntax, or should we implement relative paths?
-load("common/config.bzl", "state_dynamodb_table", "state_s3_bucket")
+load("common/config.star", "state_dynamodb_table", "state_s3_bucket")
 
 def main():
     return {
