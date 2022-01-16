@@ -1,11 +1,24 @@
 load("//internal/starlark:util.bzl", "run_starlark_executor")
 
+TerraformBackendInfo = provider(
+    "Provider for terraform_backend rule.",
+    fields = {
+        "src": "Source starlark file",
+        "deps": "Dependencies of starlark file",
+    })
+
 def _terraform_backend_impl(ctx):
     output = ctx.actions.declare_file(ctx.label.name + "_backend.tf.json")
 
     run_starlark_executor(ctx, output, ctx.file.src, ctx.files.deps, ctx.executable._starlark_executor, "encode_indent(wrap_backend(**main()))")
 
-    return [DefaultInfo(files = depset([output]))]
+    return [
+        DefaultInfo(files = depset([output])),
+        TerraformBackendInfo(
+            src = ctx.file.src,
+            deps = ctx.files.deps,
+        )
+    ]
 
 terraform_backend = rule(
     implementation = _terraform_backend_impl,
@@ -36,10 +49,11 @@ terraform_backend = rule(
 )
 
 def _terraform_remote_state_impl(ctx):
+    backend = ctx.attr.backend[TerraformBackendInfo]
     output = ctx.actions.declare_file(ctx.label.name + "_remote_state.tf.json")
 
     expr = "encode_indent(wrap_backend_remote_state(variable_name = '{}', **main()))".format(ctx.attr.variable_name)
-    run_starlark_executor(ctx, output, ctx.file.src, ctx.files.deps, ctx.executable._starlark_executor, expr)
+    run_starlark_executor(ctx, output, backend.src, backend.deps, ctx.executable._starlark_executor, expr)
 
     return [DefaultInfo(files = depset([output]))]
 
@@ -47,13 +61,9 @@ terraform_remote_state = rule(
     implementation = _terraform_remote_state_impl,
     doc = "Creates a .tf.json file defining terraform_remote_state",
     attrs = {
-        "src": attr.label(
-            doc = "Source Starlark file to execute",
-            mandatory = True,
-            allow_single_file = True,
-        ),
-        "deps": attr.label_list(
-            doc = "Files needed to execute Starlark",
+        "backend": attr.label(
+            providers = [TerraformBackendInfo],
+            doc = "Label for terraform_backend to reference.",
         ),
         "variable_name": attr.string(
             mandatory = True,

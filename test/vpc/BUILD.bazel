@@ -13,6 +13,7 @@ terraform_backend(
     name = "backend",
     src = "backend.star",
     deps = ["//common"],
+    visibility = ["//visibility:public"]
 )
 
 terraform_module(
@@ -42,5 +43,3 @@ terraform_format_test(
     module = ":module",
     terraform = TERRAFORM,
 )
-
-exports_files(["backend.star"])
