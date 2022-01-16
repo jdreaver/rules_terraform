@@ -1,0 +1,6 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# Run with bazel run //:gazelle
+
+# gazelle:prefix github.com/jdreaver/rules_terraform
+gazelle(name = "gazelle")

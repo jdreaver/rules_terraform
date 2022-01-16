@@ -12,6 +12,10 @@
           bazel_4
           jdk11 # Needed to run some bazel commands
           graphviz # To visualize bazel graph output
+
+          # Downloaded go binaries from rules_go don't work on NixOS
+          # (https://github.com/bazelbuild/rules_go/issues/1376)
+          go
         ];
       };
     };

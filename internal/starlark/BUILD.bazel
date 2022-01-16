@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "starlark_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/jdreaver/rules_terraform/internal/starlark",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@net_starlark_go//starlark:go_default_library",
+        "@net_starlark_go//starlarkjson:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "starlark",
+    embed = [":starlark_lib"],
+    visibility = ["//:__subpackages__"],
+)
