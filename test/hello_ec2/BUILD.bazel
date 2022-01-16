@@ -20,8 +20,8 @@ terraform_backend(
 
 terraform_remote_state(
     name = "vpc_remote_state",
-    backend = "//vpc:backend",
-    variable_name = "vpc",
+    src = "//vpc:backend.star",
+    deps = ["//common"],
 )
 
 terraform_module(

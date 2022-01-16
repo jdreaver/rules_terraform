@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("//internal/starlark:util.bzl", "run_starlark_executor")
 
 TerraformBackendInfo = provider(
     "Provider for _terraform_backend_internal rule.",
@@ -76,43 +77,30 @@ def terraform_backend(name, backend_type, config, out = 'backend.tf.json', **kwa
         **kwargs
     )
 
-def _terraform_remote_state(ctx):
-    backend = ctx.attr.backend[TerraformBackendInfo]
-    backend_type = backend.backend_type
-    config = json.decode(backend.config_json)
-
+def _terraform_remote_state_impl(ctx):
     output = ctx.actions.declare_file(ctx.label.name + "_remote_state.tf.json")
-    config = struct(
-        data = struct(
-            terraform_remote_state = {
-                ctx.attr.variable_name: struct(
-                    backend = backend_type,
-                    config = config,
-                ),
-            }
-        )
-    )
-    ctx.actions.write(
-        output,
-        json.encode_indent(config, indent = '  '),
-        is_executable = False,
-    )
-    return [
-        DefaultInfo(files = depset([output])),
-    ]
+
+    run_starlark_executor(ctx, output, ctx.file.src, ctx.files.deps, ctx.executable._starlark_executor, "encode_indent(wrap_backend_remote_state(**main()))")
+
+    return [DefaultInfo(files = depset([output]))]
 
 terraform_remote_state = rule(
-    implementation = _terraform_remote_state,
-    doc = "Generates a `terraform_remote_state` block from a given backend configuration.",
+    implementation = _terraform_remote_state_impl,
+    doc = "Creates a .tf.json file defining terraform_remote_state",
     attrs = {
-        "variable_name": attr.string(
+        "src": attr.label(
+            doc = "Source Starlark file to execute",
             mandatory = True,
-            doc = "Name of terraform variable to use for remote state.",
+            allow_single_file = True,
         ),
-        "backend": attr.label(
-            mandatory = True,
-            providers = [TerraformBackendInfo],
-            doc = "Label for terraform_backend to reference.",
+        "deps": attr.label_list(
+            doc = "Files needed to execute Starlark",
+        ),
+        "_starlark_executor": attr.label(
+            default = Label("//internal/starlark"),
+            allow_single_file = True,
+            executable = True,
+            cfg = "exec",
         ),
     },
 )

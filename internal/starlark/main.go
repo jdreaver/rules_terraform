@@ -83,6 +83,28 @@ def wrap_backend(backend_type, config):
             backend_type: config
         }
     }
+
+# Create a .tf.json terraform_remote_state block
+def wrap_backend_remote_state(backend_type, config, variable_name):
+    if type(backend_type) != "string":
+        fail("expected string for backend_type, got", type(backend_type))
+
+    if type(config) != "dict":
+        fail("expected dict for config, got", type(config))
+
+    if type(variable_name) != "string":
+        fail("expected string for variable_name, got", type(variable_name))
+
+    return {
+        "data": {
+            "terraform_remote_state": {
+                variable_name: {
+                    "backend": backend_type,
+                    "config": config,
+                },
+            }
+        }
+    }
 `
 
 // MakeLoad returns a simple sequential implementation of module loading

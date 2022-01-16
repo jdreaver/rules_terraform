@@ -1,16 +1,9 @@
+load("//internal/starlark:util.bzl", "run_starlark_executor")
+
 def _terraform_locals_impl(ctx):
     output = ctx.actions.declare_file(ctx.label.name + "_locals.tf.json")
 
-    ctx.actions.run(
-        outputs = [output],
-        inputs = [ctx.file.src] + ctx.files.deps,
-        executable = ctx.executable._starlark_executor,
-        arguments = [
-            "-input", ctx.file.src.path,
-            "-output", output.path,
-            "-expr", "encode_indent(wrap_locals(main()))",
-        ],
-    )
+    run_starlark_executor(ctx, output, ctx.file.src, ctx.files.deps, ctx.executable._starlark_executor, "encode_indent(wrap_locals(main()))")
 
     return [DefaultInfo(files = depset([output]))]
 

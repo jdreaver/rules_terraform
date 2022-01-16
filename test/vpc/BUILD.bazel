@@ -44,3 +44,5 @@ terraform_format_test(
     module = ":module",
     terraform = TERRAFORM,
 )
+
+exports_files(["backend.star"])
