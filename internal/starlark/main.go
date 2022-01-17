@@ -14,6 +14,7 @@ import (
 var input = flag.String("input", "", "input Starlark file path")
 var output = flag.String("output", "", "output JSON file path")
 var expr = flag.String("expr", "encode_indent(main())", "Starlark expression to call to produce output")
+var lib = flag.String("lib", "", "Starlark helper code to support running expr")
 
 func main() {
 	flag.Parse()
@@ -32,14 +33,9 @@ func main() {
 		panic(fmt.Sprintf("failed to exec input file: %v", err))
 	}
 
-	// Resolve lib Starlark program
-	libGlobals, err := starlark.ExecFile(thread, "internal_lib.star", lib, nil)
-	if err != nil {
-		panic(fmt.Sprintf("failed to execute internal lib file: %v", err))
-	}
-	for key, val := range libGlobals {
-		globals[key] = val
-	}
+	// Resolve library code
+	processLibrary(globals, thread, internalLib)
+	processLibrary(globals, thread, *lib)
 
 	// Run wrapper that calls main and encodes as JSON
 	val, err := starlark.Eval(thread, "eval_wrapper.star", *expr, globals)
@@ -60,54 +56,24 @@ func main() {
 	}
 }
 
-// Small helper functions to make execution easier
-const lib = `
+func processLibrary(globals starlark.StringDict, thread *starlark.Thread, libraryCode string) {
+	libGlobals, err := starlark.ExecFile(thread, "internal_lib.star", libraryCode, globals)
+	if err != nil {
+		panic(fmt.Sprintf("failed to execute internal lib file: %v", err))
+	}
+	for key, val := range libGlobals {
+		globals[key] = val
+	}
+}
+
+// // Small helper functions to make execution easier
+const internalLib = `
 def encode_indent(x):
     return json.indent(json.encode(x), indent='  ')
 
-# Create local variable definitions for .tf.json file
-def wrap_locals(x):
-    if type(x) != "dict":
-        fail("expected dict, got", type(x))
-    return { "locals": x }
-
-# Create a .tf.json backend block
-def wrap_backend(backend_type, config):
-    if type(backend_type) != "string":
-        fail("expected string for backend_type, got", type(backend_type))
-
-    if type(config) != "dict":
-        fail("expected dict for config, got", type(config))
-
-    return {
-        "terraform": {
-            "backend": {
-                backend_type: config
-            }
-        }
-    }
-
-# Create a .tf.json terraform_remote_state block
-def wrap_backend_remote_state(backend_type, config, variable_name):
-    if type(backend_type) != "string":
-        fail("expected string for backend_type, got", type(backend_type))
-
-    if type(config) != "dict":
-        fail("expected dict for config, got", type(config))
-
-    if type(variable_name) != "string":
-        fail("expected string for variable_name, got", type(variable_name))
-
-    return {
-        "data": {
-            "terraform_remote_state": {
-                variable_name: {
-                    "backend": backend_type,
-                    "config": config,
-                },
-            }
-        }
-    }
+def assert_type(x, expected_type):
+    if type(x) != expected_type:
+        fail("expected type", expected_type, "but got", type(x))
 `
 
 func makeThreadForFile(modulePath string, load func(thread *starlark.Thread, module string) (starlark.StringDict, error)) *starlark.Thread {

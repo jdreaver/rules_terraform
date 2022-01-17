@@ -9,6 +9,13 @@ def _terraform_locals_impl(ctx):
         ctx.file.src,
         ctx.files.deps,
         ctx.executable._starlark_executor,
+        """
+# Create local variable definitions for .tf.json file
+def wrap_locals(x):
+    assert_type(x, "dict")
+
+    return { "locals": x }
+        """,
         "encode_indent(wrap_locals(main()))",
     )
 
