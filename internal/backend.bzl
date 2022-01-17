@@ -10,7 +10,15 @@ TerraformBackendInfo = provider(
 def _terraform_backend_impl(ctx):
     output = ctx.actions.declare_file(ctx.label.name + "_backend.tf.json")
 
-    run_starlark_executor(ctx, output, ctx.file.src, ctx.files.deps, ctx.executable._starlark_executor, "encode_indent(wrap_backend(**main()))")
+    run_starlark_executor(
+        ctx,
+        output,
+        ctx.file.src,
+        ctx.files.deps,
+        ctx.executable._starlark_executor,
+        "encode_indent(wrap_backend(**main()))",
+    )
+
 
     return [
         DefaultInfo(files = depset([output])),
@@ -53,7 +61,15 @@ def _terraform_remote_state_impl(ctx):
     output = ctx.actions.declare_file(ctx.label.name + "_remote_state.tf.json")
 
     expr = "encode_indent(wrap_backend_remote_state(variable_name = '{}', **main()))".format(ctx.attr.variable_name)
-    run_starlark_executor(ctx, output, backend.src, backend.deps, ctx.executable._starlark_executor, expr)
+    run_starlark_executor(
+        ctx,
+        output,
+        backend.src,
+        backend.deps,
+        ctx.executable._starlark_executor,
+        expr,
+    )
+
 
     return [DefaultInfo(files = depset([output]))]
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkjson"
@@ -25,7 +26,7 @@ func main() {
 	starlark.Universe["json"] = starlarkjson.Module
 
 	// Resolve input Starlark program
-	thread := &starlark.Thread{Name: "main", Load: MakeLoad()}
+	thread := &starlark.Thread{Name: "main", Load: MakeLoad(path.Dir(*input))}
 	globals, err := starlark.ExecFile(thread, *input, nil, nil)
 	if err != nil {
 		panic(fmt.Sprintf("failed to exec input file: %v", err))
@@ -112,7 +113,7 @@ def wrap_backend_remote_state(backend_type, config, variable_name):
 // MakeLoad returns a simple sequential implementation of module loading
 // suitable for use in the REPL.
 // Each function returned by MakeLoad accesses a distinct private cache.
-func MakeLoad() func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+func MakeLoad(workingDir string) func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 	type entry struct {
 		globals starlark.StringDict
 		err     error
@@ -133,7 +134,7 @@ func MakeLoad() func(thread *starlark.Thread, module string) (starlark.StringDic
 
 			// Load it.
 			thread := &starlark.Thread{Name: "exec " + module, Load: thread.Load}
-			globals, err := starlark.ExecFile(thread, module, nil, nil)
+			globals, err := starlark.ExecFile(thread, path.Join(workingDir, module), nil, nil)
 			e = &entry{globals, err}
 
 			// Update the cache.

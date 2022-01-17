@@ -1,4 +1,4 @@
-load("common/config.star", "create_backend_config")
+load("../common/config.star", "create_backend_config")
 
 def main():
     return {
