@@ -12,8 +12,8 @@ TERRAFORM = "@terraform_1_1_2//:terraform"
 terraform_backend(
     name = "backend",
     src = "backend.star",
+    visibility = ["//visibility:public"],
     deps = ["//common"],
-    visibility = ["//visibility:public"]
 )
 
 terraform_module(
