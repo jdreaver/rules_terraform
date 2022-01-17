@@ -26,8 +26,7 @@ func main() {
 	starlark.Universe["json"] = starlarkjson.Module
 
 	// Resolve input Starlark program
-	thread := &starlark.Thread{Name: "main", Load: MakeLoad()}
-	thread.SetLocal("_source_dir", path.Dir(*input))
+	thread := makeThreadForFile(*input, MakeLoad())
 	globals, err := starlark.ExecFile(thread, *input, nil, nil)
 	if err != nil {
 		panic(fmt.Sprintf("failed to exec input file: %v", err))
@@ -111,6 +110,14 @@ def wrap_backend_remote_state(backend_type, config, variable_name):
     }
 `
 
+func makeThreadForFile(modulePath string, load func(thread *starlark.Thread, module string) (starlark.StringDict, error)) *starlark.Thread {
+	thread := &starlark.Thread{Name: "exec " + modulePath, Load: load}
+	// Current directory is stored in thread local variable
+	// so we can resolve relative imports.
+	thread.SetLocal("_source_dir", path.Dir(modulePath))
+	return thread
+}
+
 // MakeLoad returns a simple sequential implementation of module loading
 // suitable for use in the REPL.
 // Each function returned by MakeLoad accesses a distinct private cache.
@@ -143,8 +150,7 @@ func MakeLoad() func(thread *starlark.Thread, module string) (starlark.StringDic
 			modulePath := path.Join(sourceDir, module)
 
 			// Load it
-			thread := &starlark.Thread{Name: "exec " + module, Load: thread.Load}
-			thread.SetLocal("_source_dir", path.Dir(modulePath))
+			thread := makeThreadForFile(modulePath, thread.Load)
 			globals, err := starlark.ExecFile(thread, modulePath, nil, nil)
 			e = &entry{globals, err}
 
