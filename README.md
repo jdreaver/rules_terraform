@@ -22,14 +22,25 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 - Hermetically build Terraform dependencies, like external modules and providers.
 - Be explicit about Terraform module dependencies and use `bazel query` to build
   a DAG of module dependencies.
-- Auto-generate `backend` blocks and `terraform_remote_state` based on other
-  modules' backend blocks.
-  - (TODO: This is currently only implemented for S3 and is inlined into the
-    `test` code. Make this more general by e.g. providing a JSON object for
-    backend config and passing that around.)
+- Use [Starlark](https://github.com/bazelbuild/starlark) to generate `backend`
+  blocks, `terraform_remote_state`, and local variables.
 
 ## TODO
 
+- Implement arbitrary `.tf.json` generation via Starlark and consider how to DRY
+  that with existing codegen rules.
+  - Maybe generating `locals`, `backend`, and `terraform_remote_state` can be
+    done in Starlark instead of in separate rules. Then we can do all of a
+    module's codegen in a single Starlark file and reduce the API surface area.
+    - Maybe we even do this in the `terraform_module` rule? (Composing
+      finer-grained rules via macros seems better though, maybe). We could add
+      starlark files to `srcs` or add a `starlark_srcs` and just transform those
+      starlark files into `.tf.json`.
+    - If we had a single `terraform_starlark_json` rule then we just need to
+      return a dict that will turn into the `.tf.json`, and embedding locals,
+      backend, etc is as simple as just adding those to the dict.
+  - To implement `terraform_remote_state`, we could just parse a generated
+    `.tf.json` and pluck out the backend block.
 - Set up
   [buildifier](https://github.com/bazelbuild/buildtools/blob/master/buildifier/README.md)
   in this repo and add a CI test for ensuring everything is formatted correctly
