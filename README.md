@@ -64,17 +64,6 @@ This is a WIP set of [Bazel](https://bazel.build/) rules for Terraform.
 - Try implementing toolchain again so we can pick a default Terraform version
   - In the real world we probably want to be explicit, but for the `terraform
     fmt` test we can use whatever.
-- Ensure we are using already downloaded providers and we aren't downloading new
-  ones
-  - Looks like 0.13.0 is when the new provider installation methods were
-    implemented, with mirrors in 0.13.2
-    https://github.com/hashicorp/terraform/blob/v0.13/CHANGELOG.md#0132-september-02-2020
-	- https://www.terraform.io/cli/config/config-file#explicit-installation-method-configuration
-	- We can use the filesystem_mirror block
-  - Try making `terraform init` faster. I think downloading providers is the
-    slowest part. Maybe we can symlink providers directly? (It looks like we
-    actually are already just symlinking providers, FWIW)
-- Ensure we don't download terraform binaries we don't actually need
 - Simulate sharing values/config between Terraform and a separate dummy CLI tool
   (YAML files?) like at work to iron it out
   - https://github.com/bazelbuild/bazel/issues/13300

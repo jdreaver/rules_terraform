@@ -21,6 +21,10 @@ set -eu
 
 export TF_DATA_DIR=.terraform
 
+# Avoids having the test suite complain about the aws provider plugin changing.
+# Suggested here: https://github.com/hashicorp/terraform/issues/16017
+export TF_SKIP_PROVIDER_VERIFY=1
+
 "{terraform}" init -backend=false
 
 exec "{terraform}" validate""".format(
@@ -57,7 +61,7 @@ def _terraform_format_test_impl(ctx):
         content = """
 set -eu
 
-terraform="$(realpath {terraform})"
+terraform="$(pwd)/{terraform}"
 
 cd "{module_path}"
 

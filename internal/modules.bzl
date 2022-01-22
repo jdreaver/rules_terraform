@@ -30,15 +30,13 @@ def _terraform_module_impl(ctx):
     # Generate required_providers block based on any provider inputs to this
     # rule.
     if ctx.attr.generate_required_providers and ctx.attr.providers:
-        required_providers = []
+        required_providers = {}
         for provider in ctx.attr.providers:
             provider = provider[TerraformProviderInfo]
-            required_providers.append({
-                provider.provider_name: {
-                    "source": provider.source,
-                    "version": provider.version,
-                }
-            })
+            required_providers[provider.provider_name] = {
+                "source": provider.source,
+                "version": "= " + provider.version,
+            }
 
         required_providers_struct = struct(
             terraform = struct (
@@ -74,6 +72,11 @@ def _terraform_module_impl(ctx):
 
 terraform_module = rule(
     implementation = _terraform_module_impl,
+    doc = """Collects files and dependencies for a Terraform module.
+
+This rules does nothing by itself really, but its output of this rule is used
+in other rules like terraform_root_module or for tests.
+    """,
     attrs = {
         "srcs": attr.label_list(
             mandatory = True,
@@ -105,16 +108,15 @@ def _terraform_root_module_impl(ctx):
     terraform_version = terraform_info.version
 
     module = ctx.attr.module[TerraformModuleInfo]
-    source_files_list = module.source_files.to_list()
+
+    runfiles = [terraform_binary] + module.source_files.to_list()
 
     modules_list = module.modules.to_list()
     providers_list = [p[TerraformProviderInfo] for p in module.providers.to_list()]
     provider_files = [p.provider for p in providers_list]
 
-    # Create a plugin cache dir. TODO: Use and explicit filesystem_mirror block
-    # if terraform_version >= 0.13.2
+    # Create a plugin cache dir.
     plugin_cache_dir = "plugin_cache"
-    cached_providers = []
     for provider in providers_list:
         output = ctx.actions.declare_file("{}/{}/{}".format(
             plugin_cache_dir,
@@ -125,18 +127,58 @@ def _terraform_root_module_impl(ctx):
             output = output,
             target_file = provider.provider,
         )
-        cached_providers.append(output)
+        runfiles.append(output)
+
+        # Special filesystem mirror format
+        if terraform_version >= "0.13.2":
+            output = ctx.actions.declare_file("{}/{}/{}/{}/{}".format(
+                plugin_cache_dir,
+                provider.source,
+                provider.version,
+                provider.platform,
+                provider.provider.basename,
+            ))
+            ctx.actions.symlink(
+                output = output,
+                target_file = provider.provider,
+            )
+            runfiles.append(output)
+
+    # Create terraformrc
+    terraformrc = ctx.actions.declare_file(ctx.label.name + "_terraformrc.tfrc")
+    runfiles.append(terraformrc)
+    terraformrc_content = """
+plugin_cache_dir = "{}"
+    """.format(plugin_cache_dir)
+
+    # Use and explicit filesystem_mirror block if terraform_version >= 0.13.2
+    if terraform_version >= "0.13.2":
+        terraformrc_content += """
+provider_installation {{
+  filesystem_mirror {{
+    path    = "{plugin_cache_dir}"
+    include = ["*/*/*"]
+  }}
+}}
+        """.format(plugin_cache_dir = plugin_cache_dir)
+
+    ctx.actions.write(
+        output = terraformrc,
+        content = terraformrc_content,
+        is_executable = False,
+    )
 
     # Create a wrapper script that runs terraform in a bazel run directory with
     # all of the necessary files symlinked.
     wrapper = ctx.actions.declare_file(ctx.label.name + "_run_wrapper")
+    runfiles.append(wrapper)
     ctx.actions.write(
         output = wrapper,
         is_executable = True,
         content = """
 set -eu
 
-terraform="$(realpath {terraform})"
+terraform="$(pwd)/{terraform}"
 
 cd "{package}"
 
@@ -154,33 +196,34 @@ cd "{package}"
 #
 export TF_DATA_DIR="${{TF_DATA_DIR:-$BUILD_WORKSPACE_DIRECTORY/{package}/.terraform}}"
 
-export TF_PLUGIN_CACHE_DIR="{plugin_cache_dir}"
+export TF_CLI_CONFIG_FILE="{terraformrc}"
 
 exec "$terraform" $@
         """.format(
             package = ctx.label.package,
             terraform = terraform_binary.short_path,
-            plugin_cache_dir = plugin_cache_dir,
+            terraformrc = terraformrc.basename,
         ),
     )
 
-    runfiles = ctx.runfiles(
-        files = [terraform_binary, wrapper] +
-                source_files_list + cached_providers,
-    )
     return [
         DefaultInfo(
-            runfiles = runfiles,
+            runfiles = ctx.runfiles(files = runfiles),
             executable = wrapper,
         ),
         TerraformRootModuleInfo(
             terraform_wrapper = wrapper,
-            runfiles = runfiles,
+            runfiles = ctx.runfiles(files = runfiles),
         )
     ]
 
 terraform_root_module = rule(
     implementation = _terraform_root_module_impl,
+    doc = """Provides runnable Terraform wrapper script and providers for a root module.
+
+This rule builds an executable wrapper script that runs Terraform for the root module
+with all of the necessary bits in place from the dependent module.
+    """,
     attrs = {
         "module": attr.label(
             mandatory = True,

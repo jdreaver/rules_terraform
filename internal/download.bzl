@@ -1,10 +1,13 @@
+hashicorp_base_url = "https://releases.hashicorp.com"
+
 def _terraform_download_impl(ctx):
     platform = _detect_platform(ctx)
     version = ctx.attr.version
 
     # First get SHA256SUMS file so we can get all of the individual zip SHAs
     ctx.report_progress("Downloading and extracting SHA256SUMS file")
-    sha256sums_url = "https://releases.hashicorp.com/terraform/{version}/terraform_{version}_SHA256SUMS".format(
+    sha256sums_url = "{base}/terraform/{version}/terraform_{version}_SHA256SUMS".format(
+        base = hashicorp_base_url,
         version = version,
     )
     ctx.download(
@@ -32,7 +35,8 @@ def _terraform_download_impl(ctx):
         )
     sha256 = sha_by_zip[zip]
 
-    url = "https://releases.hashicorp.com/terraform/{version}/{zip}".format(
+    url = "{base}/terraform/{version}/{zip}".format(
+        base = hashicorp_base_url,
         version = version,
         zip = zip,
     )
@@ -130,19 +134,19 @@ TerraformBinaryInfo = provider(
     })
 
 def _terraform_binary_impl(ctx):
-    # Copies the terraform binary so we can declare it as an output and mark it
-    # as executable. We can't just mark the existing binary as executable,
-    # unfortunately.
+    """Wraps a downloaded Terraform binary as an executable.
+
+    Copies the terraform binary so we can declare it as an output and mark it as
+    executable. We can't just mark the existing binary as executable,
+    unfortunately.
+    """
     output = ctx.actions.declare_file("terraform_{}".format(ctx.attr.version))
-    ctx.actions.run(
-        inputs = [ctx.file.binary],
+    ctx.actions.run_shell(
+        command = "cp '{}' '{}'".format(ctx.file.binary.path, output.path),
+        tools = [ctx.file.binary],
         outputs = [output],
-        executable = "cp",
-        arguments = [
-            ctx.file.binary.path,
-            output.path,
-        ],
     )
+
     return [
         DefaultInfo(
             files = depset([output]),
@@ -193,7 +197,8 @@ def _terraform_provider_download_impl(ctx):
 
     # First get SHA256SUMS file so we can get all of the individual zip SHAs
     ctx.report_progress("Downloading and extracting SHA256SUMS file")
-    sha256sums_url = "https://releases.hashicorp.com/terraform-provider-{name}/{version}/terraform-provider-{name}_{version}_SHA256SUMS".format(
+    sha256sums_url = "{base}/terraform-provider-{name}/{version}/terraform-provider-{name}_{version}_SHA256SUMS".format(
+        base = hashicorp_base_url,
         name = name,
         version = version,
     )
@@ -224,7 +229,8 @@ def _terraform_provider_download_impl(ctx):
         )
     sha256 = sha_by_zip[zip]
 
-    url = "https://releases.hashicorp.com/terraform-provider-{name}/{version}/{zip}".format(
+    url = "{base}/terraform-provider-{name}/{version}/{zip}".format(
+        base = hashicorp_base_url,
         name = name,
         version = version,
         zip = zip,
